@@ -1,0 +1,42 @@
+[package]
+name = "rust_vad"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = { version = "0.8.4", features = ["ws"] }
+config = "0.15.14"
+ndarray = { version = "0.15.6", features = [
+  "approx",
+  "blas",
+  "docs",
+  "matrixmultiply-threading",
+  # "portable-atomic-critical-section",
+  "serde-1",
+  "test",
+] }
+num-bigint = { version = "0.4.6", features = ["serde"] }
+num-traits = { version = "0.2.19", features = ["i128", "libm"] }
+serde = { version = "1.0.219", features = [
+  "alloc",
+  "derive",
+  "rc",
+  "unstable",
+] }
+silero-vad-rs = "0.1.2"
+tokio = { version = "1.47.1", features = [
+  "full",
+  "mio",
+  "test-util",
+  "tracing",
+] }
+tokio-stream = { version = "0.1.17", features = ["fs", "full", "sync"] }
+tracing = { version = "0.1.41", features = [
+  "async-await",
+  "log",
+  "log-always",
+] }
+ort-sys = { version = "=2.0.0-rc.9", default-features = false }
+bytes = "1.10.1"
+hound = "3.4.0"
+futures = "0.3.31"
