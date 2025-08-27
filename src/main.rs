@@ -20,7 +20,7 @@ async fn main() {
         .route("/ws/audio", get(ws_handler::websocket_upgrade))
         .with_state(state_cfg);
 
-    let listener = TcpListener::bind("127.0.0.1:8765").await.unwrap();
+    let listener = TcpListener::bind("0.0.0.0:8765").await.unwrap();
 
     axum::serve::serve(listener, app).await.unwrap();
 }

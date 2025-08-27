@@ -213,7 +213,7 @@ where
     }
 
     async fn update_on_inactive(&mut self, chnk_byts: Bytes, smthd_prb: Ft, smthd_db: Ft) {
-        dbg!("connected>_<");
+        // dbg!("connected>_<");
 
         self.update(chnk_byts, smthd_prb, smthd_db);
 
@@ -278,14 +278,14 @@ where
         let int_chunk_array =
             &float_chunk_array * <Ft as num_traits::NumCast>::from(32767.0).unwrap();
 
-        let f32_chunk_array: Vec<f32> = int_chunk_array
-            .iter()
+        let f32_chunk_array: Vec<f32> = float_chunk_array
+            .into_iter()
             .map(|data| data.to_f32().unwrap())
             .collect();
 
         let bytes_u8: Vec<u8> = f32_chunk_array
-            .iter()
-            .flat_map(|&data| data.to_le_bytes().to_vec())
+            .into_iter()
+            .flat_map(|data| data.to_le_bytes().to_vec())
             .collect();
 
         let chunk_array = Bytes::from(bytes_u8);

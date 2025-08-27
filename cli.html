@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>麦克风音频转WebSocket流</title>
+    <title>32位浮点PCM音频传输</title>
     <style>
         * {
             box-sizing: border-box;
@@ -339,7 +339,7 @@
 </head>
 <body>
     <div class="container">
-        <h1><i class="fas fa-microphone"></i> 麦克风音频转WebSocket流</h1>
+        <h1><i class="fas fa-microphone"></i> 32位浮点PCM音频传输</h1>
         
         <div class="connection-status">
             <div class="status-indicator status-disconnected" id="statusIndicator"></div>
@@ -351,7 +351,7 @@
             <div class="settings">
                 <div class="form-group">
                     <label for="serverUrl"><i class="fas fa-link"></i> WebSocket 服务器地址</label>
-                    <input type="text" id="serverUrl" value="ws://localhost:8765/ws/audio" placeholder="输入WebSocket服务器地址">
+                    <input type="text" id="serverUrl" value="ws://192.168.31.252:8765/ws/audio" placeholder="输入WebSocket服务器地址">
                 </div>
                 
                 <div class="form-group">
@@ -369,8 +369,8 @@
             <div class="card-title"><i class="fas fa-microphone-alt"></i> 音频设置</div>
             <div class="settings">
                 <div class="form-group">
-                    <label for="targetSampleRate"><i class="fas fa-wave-square"></i> 目标采样率</label>
-                    <select id="targetSampleRate">
+                    <label for="sampleRate"><i class="fas fa-wave-square"></i> 目标采样率</label>
+                    <select id="sampleRate">
                         <option value="16000">16000 Hz</option>
                         <option value="22050">22050 Hz</option>
                         <option value="44100">44100 Hz</option>
@@ -403,8 +403,8 @@
                 <div class="status-value" id="connectionStatusValue">未连接</div>
             </div>
             <div class="status-item">
-                <div class="status-label">实际采样率</div>
-                <div class="status-value" id="actualSampleRate">-</div>
+                <div class="status-label">采样率</div>
+                <div class="status-value" id="sampleRateValue">-</div>
             </div>
             <div class="status-item">
                 <div class="status-label">数据包</div>
@@ -441,7 +441,6 @@
         let targetChannels = 1;
         let chunkSize = 1024;
         let volumeLevel = 0;
-        let resampler = null;
         
         // DOM元素
         const connectBtn = document.getElementById('connectBtn');
@@ -449,12 +448,12 @@
         const stopBtn = document.getElementById('stopBtn');
         const serverUrlInput = document.getElementById('serverUrl');
         const chunkSizeSelect = document.getElementById('chunkSize');
-        const targetSampleRateSelect = document.getElementById('targetSampleRate');
+        const sampleRateSelect = document.getElementById('sampleRate');
         const channelsSelect = document.getElementById('channels');
         const connectionStatus = document.getElementById('connectionStatus');
         const connectionStatusValue = document.getElementById('connectionStatusValue');
-        const actualSampleRateDisplay = document.getElementById('actualSampleRate');
-        const packetCountDisplay = document.getElementById('packetCount');
+        const sampleRateValue = document.getElementById('sampleRateValue');
+        const packetCount = document.getElementById('packetCount');
         const volumeLevelDisplay = document.getElementById('volumeLevel');
         const serverResponse = document.getElementById('serverResponse');
         const logContainer = document.getElementById('logContainer');
@@ -474,8 +473,8 @@
                 addLog(`数据块大小设置为: ${chunkSize} 样本`, 'info');
             });
             
-            targetSampleRateSelect.addEventListener('change', () => {
-                targetSampleRate = parseInt(targetSampleRateSelect.value);
+            sampleRateSelect.addEventListener('change', () => {
+                targetSampleRate = parseInt(sampleRateSelect.value);
                 addLog(`目标采样率设置为: ${targetSampleRate} Hz`, 'info');
             });
             
@@ -486,7 +485,7 @@
             
             // 初始设置
             chunkSize = parseInt(chunkSizeSelect.value);
-            targetSampleRate = parseInt(targetSampleRateSelect.value);
+            targetSampleRate = parseInt(sampleRateSelect.value);
             targetChannels = parseInt(channelsSelect.value);
             
             addLog('应用程序初始化完成', 'info');
@@ -625,8 +624,21 @@
                     actualSampleRate = settings.sampleRate || audioContext.sampleRate;
                     
                     // 显示实际采样率
-                    actualSampleRateDisplay.textContent = `${actualSampleRate} Hz`;
+                    sampleRateValue.textContent = `${actualSampleRate} Hz`;
                     addLog(`实际采样率: ${actualSampleRate} Hz`, 'info');
+                }
+                
+                // 发送配置信息给服务器
+                if (websocket.readyState === WebSocket.OPEN) {
+                    const config = {
+                        type: "config",
+                        sampleRate: actualSampleRate,
+                        channels: targetChannels,
+                        format: "float32",
+                        endianness: "little"
+                    };
+                    websocket.send(JSON.stringify(config));
+                    addLog('发送音频配置给服务器', 'info');
                 }
                 
                 // 创建音频源
@@ -659,15 +671,12 @@
                         volumeLevel = calculateVolume(inputData);
                         volumeLevelDisplay.textContent = `${volumeLevel.toFixed(1)} dB`;
                         
-                        // 转换为16位PCM
-                        const pcmData = convertFloat32ToInt16(inputData);
-                        
-                        // 发送到服务器
-                        websocket.send(pcmData);
+                        // 直接发送32位浮点数据（小端序）
+                        websocket.send(inputData.buffer);
                         
                         // 更新计数器
                         packetCounter++;
-                        packetCountDisplay.textContent = packetCounter;
+                        packetCount.textContent = packetCounter;
                     }
                 };
                 
@@ -757,17 +766,6 @@
             }
             
             draw();
-        }
-        
-        // 将Float32音频数据转换为Int16
-        function convertFloat32ToInt16(float32Array) {
-            const int16Array = new Int16Array(float32Array.length);
-            for (let i = 0; i < float32Array.length; i++) {
-                // 将-1到1的浮点数转换为16位整数(-32768到32767)
-                const s = Math.max(-1, Math.min(1, float32Array[i]));
-                int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-            }
-            return int16Array.buffer;
         }
         
         // 计算音量（分贝）

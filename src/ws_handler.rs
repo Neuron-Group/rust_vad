@@ -88,6 +88,9 @@ pub async fn audio_websocket_handler(
     socket: WebSocket,
     stt: State<BaseConfig<f32, i16>>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    tracing::info!("Connect constructed >_<");
+    dbg!("Connected!");
+
     let (mut sndr, mut rcvr) = socket.split();
 
     let (sndr_to_worker, rcvr_by_worker) = channel(10000);
@@ -101,7 +104,7 @@ pub async fn audio_websocket_handler(
     tokio::spawn(async move {
         while let Some(Ok(msg)) = rcvr.next().await {
             if let Message::Binary(data) = msg {
-                let float_array = convert_bytes_to_f32_array(&data, 16);
+                let float_array = convert_bytes_to_f32_array(&data, 32);
                 buf.push_vec(float_array).await;
             }
         }
