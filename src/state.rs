@@ -190,7 +190,7 @@ where
                     .await
                     .unwrap();
 
-                // dbg!("pause!");
+                dbg!("pause!");
             }
         } else {
             self.hit_count = 0;
@@ -229,7 +229,6 @@ where
             self.hit_count = 0;
 
             if self.miss_count >= self.cfg.required_misses {
-                // dbg!("resume");
                 self.stat_mchne = SpeakingStates::Idle;
                 self.miss_count = 0;
                 self.output_channel
@@ -240,6 +239,7 @@ where
                     ))
                     .await
                     .unwrap();
+                dbg!("resume");
                 if self.prob_buf.len() > MIN_CLIPS.into() {
                     let recent_chunks: Vec<&Bytes> = self
                         .pre_buf

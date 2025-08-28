@@ -23,7 +23,7 @@ serde = { version = "1.0.219", features = [
   "rc",
   "unstable",
 ] }
-silero-vad-rs = "0.1.2"
+
 tokio = { version = "1.47.1", features = [
   "full",
   "mio",
@@ -36,7 +36,13 @@ tracing = { version = "0.1.41", features = [
   "log",
   "log-always",
 ] }
+ort = { version = "=2.0.0-rc.9", features = [
+  "ndarray",
+  "cuda",
+  "fetch-models",
+] }
 ort-sys = { version = "=2.0.0-rc.9", default-features = false }
 bytes = "1.10.1"
 hound = "3.4.0"
 futures = "0.3.31"
+serde_json = "1.0.143"

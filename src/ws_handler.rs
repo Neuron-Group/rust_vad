@@ -1,13 +1,14 @@
 use crate::{
     convert_pcm::convert_bytes_to_f32_array,
-    data_model::{self, Task},
+    data_model::VoiceData,
     model_config::BaseConfig,
+    model_interface::{ModelHandeler, Task},
     state::{self, ReturnStruct},
 };
 use axum::{
     extract::{
         State,
-        ws::{Message, WebSocket, WebSocketUpgrade},
+        ws::{Message, Utf8Bytes, WebSocket, WebSocketUpgrade},
     },
     response::IntoResponse,
 };
@@ -56,7 +57,7 @@ impl Buf {
 }
 
 struct Worker {
-    model_handler: data_model::ModelHandeler,
+    model_handler: ModelHandeler,
     stat: state::StateMachine<f32, i16>,
     rcvr: Receiver<Array1<f32>>, // 接受输入的数组
 }
@@ -68,7 +69,7 @@ impl Worker {
         sndr: Sender<state::ReturnStruct<f32>>, // 交给state让他提供返回的数据
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         Ok(Self {
-            model_handler: data_model::ModelHandeler::new(&cfg)?,
+            model_handler: ModelHandeler::new(&cfg)?,
             stat: state::StateMachine::new(&cfg, sndr),
             rcvr,
         })
@@ -103,9 +104,24 @@ pub async fn audio_websocket_handler(
 
     tokio::spawn(async move {
         while let Some(Ok(msg)) = rcvr.next().await {
-            if let Message::Binary(data) = msg {
-                let float_array = convert_bytes_to_f32_array(&data, 32);
-                buf.push_vec(float_array).await;
+            // dbg!(msg.clone());
+            match msg {
+                Message::Text(text) => match serde_json::from_str::<VoiceData>(&text) {
+                    Ok(data) => {
+                        // dbg!(data.clone());
+                        if let serde_json::Value::String(str) = data.voice {
+                            // dbg!(str);
+                        }
+                    }
+                    Err(_) => (),
+                },
+                Message::Binary(data) => {
+                    // dbg!(data.clone());
+                    let float_array = convert_bytes_to_f32_array(&data, 32);
+                    dbg!(float_array.clone());
+                    buf.push_vec(float_array).await;
+                }
+                _ => (),
             }
         }
     });

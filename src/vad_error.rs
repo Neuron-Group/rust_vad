@@ -1,12 +1,14 @@
 use std::error::Error;
 use std::fmt;
 
+pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+
 #[derive(Debug, Clone)]
 pub enum ErrorType {
     TpConfigErr,
     TpParseErr,
     TpTypeConvertErr,
-    TpModelHandelErr,
+    TpModelHandlerErr,
     TpVoidErr,
 }
 
@@ -35,7 +37,7 @@ pub struct TypeConvertErr {
 }
 
 #[derive(Debug, Clone)]
-pub struct ModelHandelErr {
+pub struct ModelHandlerErr {
     err_type: ErrorType,
     pub msg: String,
 }
@@ -75,6 +77,14 @@ impl fmt::Display for ConfigErr {
     }
 }
 
+pub fn make_config_err() -> Box<dyn std::error::Error + Send + Sync> {
+    Box::new(ConfigErr::new()) as Box<dyn std::error::Error + Send + Sync>
+}
+
+pub fn make_config_err_with_msg(msg: String) -> Box<dyn std::error::Error + Send + Sync> {
+    Box::new(ConfigErr::with_msg(msg)) as Box<dyn std::error::Error + Send + Sync>
+}
+
 impl Error for ConfigErr {}
 
 // AlgorithmErr 实现
@@ -110,6 +120,14 @@ impl fmt::Display for ParseErr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Parse Error: {}", self.msg)
     }
+}
+
+pub fn make_parse_err() -> Box<dyn std::error::Error + Send + Sync> {
+    Box::new(ParseErr::new()) as Box<dyn std::error::Error + Send + Sync>
+}
+
+pub fn make_parse_err_with_msg(msg: String) -> Box<dyn std::error::Error + Send + Sync> {
+    Box::new(ParseErr::with_msg(msg)) as Box<dyn std::error::Error + Send + Sync>
 }
 
 impl Error for ParseErr {}
@@ -149,41 +167,57 @@ impl fmt::Display for TypeConvertErr {
     }
 }
 
+pub fn make_type_convert_err() -> Box<dyn std::error::Error + Send + Sync> {
+    Box::new(TypeConvertErr::new()) as Box<dyn std::error::Error + Send + Sync>
+}
+
+pub fn make_type_convert_err_with_msg(msg: String) -> Box<dyn std::error::Error + Send + Sync> {
+    Box::new(TypeConvertErr::with_msg(msg)) as Box<dyn std::error::Error + Send + Sync>
+}
+
 impl Error for TypeConvertErr {}
 
 // ModelHandelErr 实现
-impl ModelHandelErr {
+impl ModelHandlerErr {
     pub fn new() -> Self {
-        ModelHandelErr {
-            err_type: ErrorType::TpModelHandelErr,
+        ModelHandlerErr {
+            err_type: ErrorType::TpModelHandlerErr,
             msg: String::from("model handling failed >_<"),
         }
     }
 
     pub fn with_msg(msg: String) -> Self {
-        ModelHandelErr {
-            err_type: ErrorType::TpModelHandelErr,
+        ModelHandlerErr {
+            err_type: ErrorType::TpModelHandlerErr,
             msg,
         }
     }
 }
 
-impl Default for ModelHandelErr {
+impl Default for ModelHandlerErr {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl VadError for ModelHandelErr {
+impl VadError for ModelHandlerErr {
     fn get_error_type(&self) -> ErrorType {
         self.err_type.clone()
     }
 }
 
-impl fmt::Display for ModelHandelErr {
+impl fmt::Display for ModelHandlerErr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Model Handling Error: {}", self.msg)
     }
 }
 
-impl Error for ModelHandelErr {}
+pub fn make_model_handler_err() -> Box<dyn std::error::Error + Send + Sync> {
+    Box::new(ModelHandlerErr::new()) as Box<dyn std::error::Error + Send + Sync>
+}
+
+pub fn make_model_handler_err_with_msg(msg: String) -> Box<dyn std::error::Error + Send + Sync> {
+    Box::new(ModelHandlerErr::with_msg(msg)) as Box<dyn std::error::Error + Send + Sync>
+}
+
+impl Error for ModelHandlerErr {}

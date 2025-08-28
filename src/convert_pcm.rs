@@ -1,5 +1,6 @@
 pub fn convert_bytes_to_f32_array_(bytes: &[u8]) -> Vec<f32> {
     if !bytes.len().is_multiple_of(4) {
+        dbg!("bytes error >_<");
         return Vec::new();
     }
 
