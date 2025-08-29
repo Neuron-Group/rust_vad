@@ -29,8 +29,8 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> BaseConfig<Ft, It> {
             target_sr: It::from(16000).unwrap(),
             prob_threshold: <Ft as num_traits::NumCast>::from(0.2).unwrap(),
             db_threshold: <Ft as num_traits::NumCast>::from(30.0).unwrap(),
-            required_hits: 5,
-            required_misses: 30,
+            required_hits: 10,
+            required_misses: 50,
             smoothing_window: 3,
             model_path: cfg.model_path.into_path_buf().into_boxed_path(),
         }

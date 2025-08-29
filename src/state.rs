@@ -30,7 +30,7 @@ pub struct StateMachine<Ft: FloatTrait + From<It>, It: IntTrait> {
     prob_window: FixedLengthQueue<Ft>,
     db_window: FixedLengthQueue<Ft>,
 
-    bio_filter: Synaptic,
+    bio_filter: Synaptic<Ft>,
 
     pre_buf: Vec<Bytes>,
 
@@ -282,12 +282,11 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
         let db = Self::calculate_db(&int_chunk_array);
 
         let (_, smthd_db) = self.get_smoothed_values(prob, db);
-        let smthd_prb = self.bio_filter.update(prob.to_f32().unwrap());
-        let smthd_prb = <Ft as num_traits::NumCast>::from(smthd_prb).unwrap();
+        let smthd_prb = self.bio_filter.update(prob);
 
         // let (smthd_prb, smthd_db) = self.get_smoothed_values(prob, db);
 
-        dbg!(Result::<f32>::Ok(smthd_prb.to_f32().unwrap()));
+        // dbg!(Result::<f32>::Ok(smthd_prb.to_f32().unwrap()));
 
         match self.stat_mchne {
             SpeakingStates::Idle => {
