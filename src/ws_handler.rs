@@ -16,6 +16,7 @@ use axum::{
 use futures::{SinkExt, StreamExt};
 use ndarray::Array1;
 use tokio::sync::mpsc::{Receiver, Sender, channel};
+use tracing::*;
 
 const INPUT_LEN: usize = 512;
 
@@ -102,7 +103,7 @@ impl Worker {
         while let Some(value) = self.rcvr.recv().await {
             let tsk = Task::build_strict(&value)?;
             let result = self.model_handler.handle::<f32>(tsk)?;
-            dbg!(Ok::<f32, ModelHandlerErr>(result));
+            // dbg!(Ok::<f32, ModelHandlerErr>(result));
             self.stat.process(result, value).await?;
         }
         Ok(())
@@ -143,7 +144,17 @@ pub async fn audio_websocket_handler(
                     // dbg!(data.clone());
                     let float_array = convert_bytes_to_f32_array(&data, 16);
                     // println!("{:?}", float_array.clone());
-                    buf.push_vec(float_array).await;
+                    if buf
+                        .push_vec(float_array)
+                        .await
+                        .map_err(|e| {
+                            warn!("{:?}", e);
+                            e
+                        })
+                        .is_err()
+                    {
+                        continue;
+                    };
                 }
                 _ => (),
             }

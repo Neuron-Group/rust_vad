@@ -1,10 +1,8 @@
-use crate::{model_config, vad_error::*};
+use crate::{fixed_deque::FixedLengthQueue, model_config, synaptic_filter::Synaptic, vad_error::*};
 use bytes::{Bytes, BytesMut};
 use ndarray::Array1;
-use num_traits::{FromPrimitive, ToPrimitive, Zero, float, int};
+use num_traits::{FromPrimitive, NumCast, ToPrimitive, Zero, float, int};
 use tokio::sync::mpsc::Sender;
-
-use crate::fixed_deque::FixedLengthQueue;
 
 const MIN_CLIPS: u8 = 3;
 
@@ -40,6 +38,8 @@ pub struct StateMachine<
 
     prob_window: FixedLengthQueue<Ft>,
     db_window: FixedLengthQueue<Ft>,
+
+    bio_filter: Synaptic,
 
     pre_buf: Vec<Bytes>,
 
@@ -113,6 +113,8 @@ where
 
             prob_window: FixedLengthQueue::new(cfg.smoothing_window),
             db_window: FixedLengthQueue::new(cfg.smoothing_window),
+
+            bio_filter: Synaptic::new(),
 
             pre_buf: Vec::new(),
 
@@ -320,7 +322,11 @@ where
 
         let db = Self::calculate_db(&int_chunk_array);
 
-        let (smthd_prb, smthd_db) = self.get_smoothed_values(prob, db);
+        let (_, smthd_db) = self.get_smoothed_values(prob, db);
+
+        let smthd_prb = self.bio_filter.update(prob.to_f32().unwrap());
+        dbg!(Result::<f32>::Ok(smthd_prb));
+        let smthd_prb = <Ft as NumCast>::from(smthd_prb).unwrap();
 
         match self.stat_mchne {
             SpeakingStates::Idle => {
