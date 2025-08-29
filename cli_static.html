@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WAV文件流式传输</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 30px;
+            width: 90%;
+            max-width: 800px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 2.2rem;
+            color: #fdbb2d;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .card-title {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #fdbb2d;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card-title i {
+            margin-right: 10px;
+            font-size: 1.5rem;
+        }
+        
+        .settings {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            .settings {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #fdbb2d;
+            box-shadow: 0 0 0 2px rgba(253, 187, 45, 0.3);
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 25px 0;
+        }
+        
+        button {
+            padding: 14px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        button i {
+            margin-right: 8px;
+        }
+        
+        #connectBtn {
+            background: #3498db;
+            color: white;
+        }
+        
+        #connectBtn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        #startBtn {
+            background: #2ecc71;
+            color: white;
+        }
+        
+        #startBtn:hover {
+            background: #27ae60;
+            transform: translateY(-2px);
+        }
+        
+        #stopBtn {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        #stopBtn:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .status-item {
+            flex: 1;
+            min-width: 150px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .status-label {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+        
+        .status-value {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #fdbb2d;
+        }
+        
+        .audio-visualization {
+            height: 150px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .visualizer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: flex-end;
+        }
+        
+        .bar {
+            flex: 1;
+            background: rgba(46, 204, 113, 0.8);
+            margin: 0 1px;
+            min-height: 1px;
+        }
+        
+        .result-container {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 25px;
+        }
+        
+        .result-title {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #fdbb2d;
+            display: flex;
+            align-items: center;
+        }
+        
+        .result-content {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            min-height: 150px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        
+        .progress-container {
+            margin-top: 20px;
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
+            background: #2ecc71;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .log-container {
+            margin-top: 25px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .log-entry {
+            padding: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .success {
+            color: #2ecc71;
+        }
+        
+        .error {
+            color: #e74c3c;
+        }
+        
+        .info {
+            color: #3498db;
+        }
+        
+        .warning {
+            color: #f39c12;
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .status-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 15px;
+        }
+        
+        .status-connected {
+            background: #2ecc71;
+            box-shadow: 0 0 10px #2ecc71;
+        }
+        
+        .status-disconnected {
+            background: #e74c3c;
+        }
+        
+        .status-connecting {
+            background: #f39c12;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .file-input-container {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+        
+        .file-input-container input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .file-input-label {
+            display: block;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            border: 1px solid #444;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .file-input-label:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #fdbb2d;
+        }
+        
+        .file-info {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+        
+        .waveform-container {
+            height: 150px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .waveform {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .waveform canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .playback-indicator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 2px;
+            height: 100%;
+            background: #e74c3c;
+            z-index: 10;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-file-audio"></i> WAV文件流式传输</h1>
+        
+        <div class="connection-status">
+            <div class="status-indicator status-disconnected" id="statusIndicator"></div>
+            <div id="connectionStatus">未连接</div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title"><i class="fas fa-cog"></i> 服务器设置</div>
+            <div class="settings">
+                <div class="form-group">
+                    <label for="serverUrl"><i class="fas fa-link"></i> WebSocket 服务器地址</label>
+                    <input type="text" id="serverUrl" value="ws://192.168.31.252:8765/ws/audio" placeholder="输入WebSocket服务器地址">
+                </div>
+                
+                <div class="form-group">
+                    <label for="chunkSize"><i class="fas fa-chart-bar"></i> 数据块大小 (字节)</label>
+                    <select id="chunkSize">
+                        <option value="1024">1024</option>
+                        <option value="2048" selected>2048</option>
+                        <option value="4096">4096</option>
+                        <option value="8192">8192</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title"><i class="fas fa-file-upload"></i> 文件选择</div>
+            <div class="form-group">
+                <div class="file-input-container">
+                    <label class="file-input-label" for="wavFile">
+                        <i class="fas fa-cloud-upload-alt"></i> 选择16kHz单声道WAV文件
+                    </label>
+                    <input type="file" id="wavFile" accept=".wav">
+                </div>
+                <div class="file-info" id="fileInfo">未选择文件</div>
+            </div>
+        </div>
+        
+        <div class="waveform-container">
+            <div class="waveform" id="waveform">
+                <canvas id="waveformCanvas"></canvas>
+                <div class="playback-indicator" id="playbackIndicator"></div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="connectBtn"><i class="fas fa-plug"></i> 连接服务器</button>
+            <button id="startBtn" disabled><i class="fas fa-play"></i> 开始传输</button>
+            <button id="stopBtn" disabled><i class="fas fa-stop"></i> 停止传输</button>
+        </div>
+        
+        <div class="status">
+            <div class="status-item">
+                <div class="status-label">连接状态</div>
+                <div class="status-value" id="connectionStatusValue">未连接</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">文件大小</div>
+                <div class="status-value" id="fileSizeValue">-</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">已发送</div>
+                <div class="status-value" id="sentBytes">0 B</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">进度</div>
+                <div class="status-value" id="progressValue">0%</div>
+            </div>
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress" id="progressBar"></div>
+            </div>
+            <div class="progress-info">
+                <span>0%</span>
+                <span id="progressText">0 / 0 B</span>
+            </div>
+        </div>
+        
+        <div class="result-container">
+            <div class="result-title"><i class="fas fa-server"></i> 服务器响应</div>
+            <div class="result-content" id="serverResponse">等待服务器响应...</div>
+        </div>
+        
+        <div class="log-container" id="logContainer">
+            <div class="log-entry info">系统已就绪，请选择文件并连接服务器</div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let websocket = null;
+        let isSending = false;
+        let packetCounter = 0;
+        let chunkSize = 2048;
+        let file = null;
+        let fileBuffer = null;
+        let fileReader = null;
+        let currentPosition = 0;
+        let audioContext = null;
+        let audioBuffer = null;
+        let waveformCanvas = null;
+        let waveformCtx = null;
+        
+        // DOM元素
+        const connectBtn = document.getElementById('connectBtn');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const serverUrlInput = document.getElementById('serverUrl');
+        const chunkSizeSelect = document.getElementById('chunkSize');
+        const wavFileInput = document.getElementById('wavFile');
+        const fileInfo = document.getElementById('fileInfo');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const connectionStatusValue = document.getElementById('connectionStatusValue');
+        const fileSizeValue = document.getElementById('fileSizeValue');
+        const sentBytes = document.getElementById('sentBytes');
+        const progressValue = document.getElementById('progressValue');
+        const serverResponse = document.getElementById('serverResponse');
+        const logContainer = document.getElementById('logContainer');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const waveformCanvasEl = document.getElementById('waveformCanvas');
+        const playbackIndicator = document.getElementById('playbackIndicator');
+
+        // 初始化
+        function init() {
+            // 按钮事件
+            connectBtn.addEventListener('click', toggleConnection);
+            startBtn.addEventListener('click', toggleSending);
+            stopBtn.addEventListener('click', stopSending);
+            
+            // 设置选择器事件
+            chunkSizeSelect.addEventListener('change', () => {
+                chunkSize = parseInt(chunkSizeSelect.value);
+                addLog(`数据块大小设置为: ${chunkSize} 字节`, 'info');
+            });
+            
+            // 文件选择事件
+            wavFileInput.addEventListener('change', handleFileSelect);
+            
+            // 初始设置
+            chunkSize = parseInt(chunkSizeSelect.value);
+            
+            // 初始化音频上下文
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                addLog(`无法创建音频上下文: ${e.message}`, 'error');
+            }
+            
+            // 初始化波形画布
+            waveformCanvas = waveformCanvasEl;
+            waveformCtx = waveformCanvas.getContext('2d');
+            resizeWaveformCanvas();
+            
+            addLog('应用程序初始化完成', 'info');
+        }
+        
+        // 调整波形画布大小
+        function resizeWaveformCanvas() {
+            const container = document.querySelector('.waveform-container');
+            waveformCanvas.width = container.clientWidth;
+            waveformCanvas.height = container.clientHeight;
+        }
+        
+        // 处理文件选择
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            if (files.length === 0) return;
+            
+            file = files[0];
+            fileInfo.textContent = `${file.name} (${formatFileSize(file.size)})`;
+            addLog(`已选择文件: ${file.name}`, 'success');
+            
+            // 读取文件
+            fileReader = new FileReader();
+            fileReader.onload = (e) => {
+                fileBuffer = e.target.result;
+                addLog(`文件已加载: ${formatFileSize(fileBuffer.byteLength)}`, 'success');
+                
+                // 解析WAV文件
+                parseWavFile(fileBuffer);
+                
+                // 绘制波形
+                drawWaveform();
+                
+                // 如果已连接服务器，启用开始按钮
+                if (websocket && websocket.readyState === WebSocket.OPEN) {
+                    startBtn.disabled = false;
+                }
+            };
+            
+            fileReader.onerror = (e) => {
+                addLog(`读取文件错误: ${e.target.error}`, 'error');
+            };
+            
+            fileReader.readAsArrayBuffer(file);
+        }
+        
+        // 解析WAV文件
+        function parseWavFile(buffer) {
+            try {
+                // 解析WAV文件头
+                const view = new DataView(buffer);
+                const riff = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
+                if (riff !== 'RIFF') {
+                    throw new Error('无效的WAV文件: RIFF头缺失');
+                }
+                
+                const wave = String.fromCharCode(view.getUint8(8), view.getUint8(9), view.getUint8(10), view.getUint8(11));
+                if (wave !== 'WAVE') {
+                    throw new Error('无效的WAV文件: WAVE标识缺失');
+                }
+                
+                // 查找fmt块
+                let offset = 12;
+                let fmtFound = false;
+                while (offset < view.byteLength) {
+                    const chunkId = String.fromCharCode(view.getUint8(offset), view.getUint8(offset+1), view.getUint8(offset+2), view.getUint8(offset+3));
+                    const chunkSize = view.getUint32(offset+4, true);
+                    
+                    if (chunkId === 'fmt ') {
+                        fmtFound = true;
+                        
+                        // 读取fmt块
+                        const audioFormat = view.getUint16(offset+8, true);
+                        const numChannels = view.getUint16(offset+10, true);
+                        const sampleRate = view.getUint32(offset+12, true);
+                        const bitsPerSample = view.getUint16(offset+22, true);
+                        
+                        addLog(`WAV文件信息: ${numChannels}声道, ${sampleRate}Hz, ${bitsPerSample}位`, 'info');
+                        
+                        // 验证文件格式
+                        if (numChannels !== 1) {
+                            addLog(`警告: 文件不是单声道 (${numChannels}声道)`, 'warning');
+                        }
+                        
+                        if (sampleRate !== 16000) {
+                            addLog(`警告: 文件采样率不是16kHz (${sampleRate}Hz)`, 'warning');
+                        }
+                        
+                        if (bitsPerSample !== 16) {
+                            addLog(`警告: 文件不是16位PCM (${bitsPerSample}位)`, 'warning');
+                        }
+                        
+                        break;
+                    }
+                    
+                    offset += 8 + chunkSize;
+                }
+                
+                if (!fmtFound) {
+                    throw new Error('无效的WAV文件: fmt块缺失');
+                }
+                
+                // 解码音频数据
+                if (audioContext) {
+                    audioContext.decodeAudioData(buffer.slice(0))
+                        .then(buffer => {
+                            audioBuffer = buffer;
+                            addLog('音频数据解码成功', 'success');
+                        })
+                        .catch(e => {
+                            addLog(`音频解码失败: ${e.message}`, 'error');
+                        });
+                }
+                
+            } catch (e) {
+                addLog(`解析WAV文件失败: ${e.message}`, 'error');
+            }
+        }
+        
+        // 绘制波形
+        function drawWaveform() {
+            if (!audioBuffer || !waveformCtx) return;
+            
+            resizeWaveformCanvas();
+            
+            const width = waveformCanvas.width;
+            const height = waveformCanvas.height;
+            const channelData = audioBuffer.getChannelData(0);
+            const step = Math.ceil(channelData.length / width);
+            
+            waveformCtx.clearRect(0, 0, width, height);
+            waveformCtx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            waveformCtx.fillRect(0, 0, width, height);
+            
+            waveformCtx.beginPath();
+            waveformCtx.strokeStyle = '#2ecc71';
+            waveformCtx.lineWidth = 1;
+            
+            for (let i = 0; i < width; i++) {
+                const index = Math.floor(i * step);
+                if (index >= channelData.length) break;
+                
+                const value = channelData[index];
+                const y = (1 - value) * height / 2;
+                
+                if (i === 0) {
+                    waveformCtx.moveTo(i, y);
+                } else {
+                    waveformCtx.lineTo(i, y);
+                }
+            }
+            
+            waveformCtx.stroke();
+        }
+        
+        // 更新播放指示器位置
+        function updatePlaybackIndicator(position) {
+            if (!fileBuffer) return;
+            
+            const progress = position / fileBuffer.byteLength;
+            const container = document.querySelector('.waveform-container');
+            const positionPx = progress * container.clientWidth;
+            
+            playbackIndicator.style.left = `${positionPx}px`;
+        }
+        
+        // 切换连接状态
+        function toggleConnection() {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                disconnect();
+            } else {
+                connect();
+            }
+        }
+        
+        // 连接到服务器
+        function connect() {
+            const url = serverUrlInput.value.trim();
+            
+            if (!url) {
+                addLog('错误：请输入WebSocket服务器地址', 'error');
+                return;
+            }
+            
+            addLog(`正在连接到服务器: ${url}`, 'info');
+            updateConnectionStatus('connecting', '连接中...');
+            
+            try {
+                websocket = new WebSocket(url);
+                
+                websocket.onopen = () => {
+                    updateConnectionStatus('connected', '已连接');
+                    addLog('成功连接到服务器', 'success');
+                    
+                    // 如果已选择文件，启用开始按钮
+                    if (file) {
+                        startBtn.disabled = false;
+                    }
+                };
+                
+                websocket.onclose = () => {
+                    updateConnectionStatus('disconnected', '已断开');
+                    addLog('服务器连接已关闭', 'warning');
+                    
+                    startBtn.disabled = true;
+                    stopBtn.disabled = true;
+                    
+                    // 如果正在发送，停止发送
+                    if (isSending) {
+                        stopSending();
+                    }
+                };
+                
+                websocket.onerror = (error) => {
+                    updateConnectionStatus('error', '连接错误');
+                    addLog(`WebSocket错误: ${error}`, 'error');
+                };
+                
+                websocket.onmessage = (event) => {
+                    try {
+                        let response;
+                        
+                        // 处理不同类型的消息
+                        if (typeof event.data === 'string') {
+                            // 文本消息
+                            response = event.data;
+                        } else if (event.data instanceof ArrayBuffer) {
+                            // ArrayBuffer消息
+                            const decoder = new TextDecoder('utf-8');
+                            response = decoder.decode(event.data);
+                        } else if (event.data instanceof Blob) {
+                            // Blob消息
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                                serverResponse.textContent = reader.result;
+                                addLog(`收到服务器响应: ${reader.result}`, 'info');
+                            };
+                            reader.readAsText(event.data);
+                            return;
+                        } else {
+                            // 其他类型消息
+                            response = JSON.stringify(event.data);
+                        }
+                        
+                        serverResponse.textContent = response;
+                        addLog(`收到服务器响应: ${response}`, 'info');
+                    } catch (e) {
+                        addLog(`处理服务器响应时出错: ${e.message}`, 'error');
+                    }
+                };
+                
+            } catch (error) {
+                updateConnectionStatus('error', '连接失败');
+                addLog(`连接失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 断开连接
+        function disconnect() {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.close(1000, '用户断开连接');
+            }
+        }
+        
+        // 切换发送状态
+        function toggleSending() {
+            if (isSending) {
+                stopSending();
+            } else {
+                startSending();
+            }
+        }
+        
+        // 开始发送文件
+        function startSending() {
+            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                addLog('错误：未连接到服务器', 'error');
+                return;
+            }
+            
+            if (!fileBuffer) {
+                addLog('错误：未选择文件', 'error');
+                return;
+            }
+            
+            // 重置状态
+            currentPosition = 0;
+            packetCounter = 0;
+            isSending = true;
+            
+            // 更新UI
+            startBtn.textContent = '暂停传输';
+            startBtn.style.backgroundColor = '#f39c12';
+            stopBtn.disabled = false;
+            
+            fileSizeValue.textContent = formatFileSize(fileBuffer.byteLength);
+            sentBytes.textContent = '0 B';
+            progressValue.textContent = '0%';
+            progressBar.style.width = '0%';
+            progressText.textContent = `0 / ${formatFileSize(fileBuffer.byteLength)}`;
+            
+            addLog('开始传输文件', 'success');
+            
+            // 发送配置信息
+            const config = {
+                type: "config",
+                fileName: file.name,
+                fileSize: fileBuffer.byteLength,
+                chunkSize: chunkSize
+            };
+            websocket.send(JSON.stringify(config));
+            
+            // 开始发送数据
+            sendNextChunk();
+        }
+        
+        // 发送下一个数据块
+        function sendNextChunk() {
+            if (!isSending || !websocket || websocket.readyState !== WebSocket.OPEN) {
+                return;
+            }
+            
+            if (currentPosition >= fileBuffer.byteLength) {
+                // 文件发送完成
+                stopSending();
+                addLog('文件传输完成', 'success');
+                return;
+            }
+            
+            // 计算下一个数据块
+            const endPosition = Math.min(currentPosition + chunkSize, fileBuffer.byteLength);
+            const chunk = fileBuffer.slice(currentPosition, endPosition);
+            
+            // 发送数据块
+            websocket.send(chunk);
+            
+            // 更新状态
+            currentPosition = endPosition;
+            packetCounter++;
+            
+            // 更新UI
+            const progress = (currentPosition / fileBuffer.byteLength) * 100;
+            sentBytes.textContent = formatFileSize(currentPosition);
+            progressValue.textContent = `${progress.toFixed(1)}%`;
+            progressBar.style.width = `${progress}%`;
+            progressText.textContent = `${formatFileSize(currentPosition)} / ${formatFileSize(fileBuffer.byteLength)}`;
+            
+            // 更新波形指示器
+            updatePlaybackIndicator(currentPosition);
+            
+            // 发送下一个数据块（使用setTimeout避免阻塞UI）
+            setTimeout(sendNextChunk, 10);
+        }
+        
+        // 停止发送
+        function stopSending() {
+            if (isSending) {
+                isSending = false;
+                
+                // 更新UI
+                startBtn.textContent = '开始传输';
+                startBtn.style.backgroundColor = '#2ecc71';
+                stopBtn.disabled = true;
+                
+                addLog('传输已停止', 'info');
+            }
+        }
+        
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            else return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+        
+        // 添加日志
+        function addLog(message, type = 'info') {
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // 更新连接状态
+        function updateConnectionStatus(status, text) {
+            connectionStatus.textContent = text;
+            connectionStatusValue.textContent = text;
+            
+            // 重置所有状态类
+            statusIndicator.className = 'status-indicator';
+            
+            // 添加当前状态类
+            switch (status) {
+                case 'connected':
+                    statusIndicator.classList.add('status-connected');
+                    connectBtn.textContent = '断开连接';
+                    connectBtn.style.backgroundColor = '#e74c3c';
+                    break;
+                case 'disconnected':
+                    statusIndicator.classList.add('status-disconnected');
+                    connectBtn.textContent = '连接服务器';
+                    connectBtn.style.backgroundColor = '#3498db';
+                    break;
+                case 'connecting':
+                    statusIndicator.classList.add('status-connecting');
+                    connectBtn.disabled = true;
+                    break;
+                case 'error':
+                    statusIndicator.classList.add('status-disconnected');
+                    connectBtn.textContent = '连接服务器';
+                    connectBtn.style.backgroundColor = '#3498db';
+                    break;
+            }
+        }
+        
+        // 初始化应用
+        window.addEventListener('DOMContentLoaded', init);
+        window.addEventListener('resize', resizeWaveformCanvas);
+    </script>
+</body>
+</html>

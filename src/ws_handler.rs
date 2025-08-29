@@ -4,6 +4,7 @@ use crate::{
     model_config::BaseConfig,
     model_interface::{ModelHandeler, Task},
     state::{self, ReturnStruct},
+    vad_error::*,
 };
 use axum::{
     extract::{
@@ -33,26 +34,48 @@ impl Buf {
         }
     }
 
-    pub async fn push(&mut self, data: f32) {
-        if self.ptr + 1 >= INPUT_LEN {
-            let input_data = self.buf.take().unwrap();
-            let input_arr: Array1<f32> = Array1::from_iter(input_data.into_iter());
-            self.act.send(input_arr).await.unwrap();
+    pub async fn push_vec(&mut self, mut data: Vec<f32>) -> Result<()> {
+        if data.is_empty() {
+            return Ok(());
         }
 
+        // 初始化缓冲区
         if self.buf.is_none() {
             self.buf = Some([0.0; INPUT_LEN]);
             self.ptr = 0;
         }
 
-        self.buf.as_mut().unwrap()[self.ptr] = data;
-        self.ptr += 1;
-    }
+        while !data.is_empty() {
+            let avlb = INPUT_LEN - self.ptr;
+            let cpy_l = data.len().min(avlb);
 
-    pub async fn push_vec(&mut self, data_vec: Vec<f32>) {
-        for data in data_vec {
-            self.push(data).await;
+            {
+                let buf = match self.buf.as_mut() {
+                    Some(v) => v,
+                    None => return Err(make_parse_err()),
+                };
+                buf[self.ptr..self.ptr + cpy_l].copy_from_slice(&data[..cpy_l]);
+            }
+
+            self.ptr += cpy_l;
+
+            // 更新剩余数据
+            data.drain(..cpy_l);
+
+            if self.ptr == INPUT_LEN {
+                let buf_data = self.buf.take().unwrap();
+                // println!("{:?}", buf_data.clone());
+                let input_arr = Array1::from_iter(buf_data.into_iter());
+                // println!("{}", input_arr.clone());
+
+                self.act.send(input_arr).await?;
+
+                self.buf = Some([0.0; INPUT_LEN]);
+                self.ptr = 0;
+            }
         }
+
+        Ok(())
     }
 }
 
@@ -67,7 +90,7 @@ impl Worker {
         State(cfg): State<BaseConfig<f32, i16>>,
         rcvr: Receiver<Array1<f32>>,
         sndr: Sender<state::ReturnStruct<f32>>, // 交给state让他提供返回的数据
-    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Self> {
         Ok(Self {
             model_handler: ModelHandeler::new(&cfg)?,
             stat: state::StateMachine::new(&cfg, sndr),
@@ -75,11 +98,12 @@ impl Worker {
         })
     }
 
-    async fn handler(&mut self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    async fn handler(&mut self) -> Result<()> {
         while let Some(value) = self.rcvr.recv().await {
             let tsk = Task::build_strict(&value)?;
             let result = self.model_handler.handle::<f32>(tsk)?;
-            self.stat.process(result, value).await;
+            dbg!(Ok::<f32, ModelHandlerErr>(result));
+            self.stat.process(result, value).await?;
         }
         Ok(())
     }
@@ -88,7 +112,7 @@ impl Worker {
 pub async fn audio_websocket_handler(
     socket: WebSocket,
     stt: State<BaseConfig<f32, i16>>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<()> {
     tracing::info!("Connect constructed >_<");
     dbg!("Connected!");
 
@@ -117,8 +141,8 @@ pub async fn audio_websocket_handler(
                 },
                 Message::Binary(data) => {
                     // dbg!(data.clone());
-                    let float_array = convert_bytes_to_f32_array(&data, 32);
-                    dbg!(float_array.clone());
+                    let float_array = convert_bytes_to_f32_array(&data, 16);
+                    // println!("{:?}", float_array.clone());
                     buf.push_vec(float_array).await;
                 }
                 _ => (),

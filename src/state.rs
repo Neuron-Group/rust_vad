@@ -1,4 +1,4 @@
-use crate::model_config;
+use crate::{model_config, vad_error::*};
 use bytes::{Bytes, BytesMut};
 use ndarray::Array1;
 use num_traits::{FromPrimitive, ToPrimitive, Zero, float, int};
@@ -81,7 +81,7 @@ where
         }
     }
 
-    pub fn get_sig(&self) -> Result<String, Box<dyn std::error::Error>> {
+    pub fn get_sig(&self) -> Result<String> {
         Ok(String::from_utf8(self.sig.to_vec())?)
     }
 }
@@ -174,7 +174,12 @@ where
         self.bytes_buf.clear();
     }
 
-    async fn update_on_idle(&mut self, chnk_byts: Bytes, smthd_prb: Ft, smthd_db: Ft) {
+    async fn update_on_idle(
+        &mut self,
+        chnk_byts: Bytes,
+        smthd_prb: Ft,
+        smthd_db: Ft,
+    ) -> Result<()> {
         self.pre_buf.push(chnk_byts.clone());
 
         if smthd_prb >= self.cfg.prob_threshold && smthd_db >= self.cfg.db_threshold {
@@ -188,16 +193,23 @@ where
                 self.output_channel
                     .send(ReturnStruct::new(vec![], vec![], String::from("<|PAUSE|>")))
                     .await
-                    .unwrap();
+                    .map_err(|e| make_parse_err_with_msg(e.to_string()))?;
 
-                dbg!("pause!");
+                println!("pause!");
             }
         } else {
             self.hit_count = 0;
         }
+
+        Ok(())
     }
 
-    async fn update_on_active(&mut self, chnk_byts: Bytes, smthd_prb: Ft, smthd_db: Ft) {
+    async fn update_on_active(
+        &mut self,
+        chnk_byts: Bytes,
+        smthd_prb: Ft,
+        smthd_db: Ft,
+    ) -> Result<()> {
         self.update(chnk_byts, smthd_prb, smthd_db);
 
         if smthd_prb >= self.cfg.prob_threshold && smthd_db >= self.cfg.db_threshold {
@@ -210,9 +222,16 @@ where
                 self.miss_count = 0;
             }
         }
+
+        Ok(())
     }
 
-    async fn update_on_inactive(&mut self, chnk_byts: Bytes, smthd_prb: Ft, smthd_db: Ft) {
+    async fn update_on_inactive(
+        &mut self,
+        chnk_byts: Bytes,
+        smthd_prb: Ft,
+        smthd_db: Ft,
+    ) -> Result<()> {
         // dbg!("connected>_<");
 
         self.update(chnk_byts, smthd_prb, smthd_db);
@@ -238,8 +257,8 @@ where
                         String::from("<|RESUME|>"),
                     ))
                     .await
-                    .unwrap();
-                dbg!("resume");
+                    .map_err(|e| make_parse_err_with_msg(e.to_string()))?;
+                println!("resume!");
                 if self.prob_buf.len() > MIN_CLIPS.into() {
                     let recent_chunks: Vec<&Bytes> = self
                         .pre_buf
@@ -264,7 +283,7 @@ where
                             sig: out_bytes.into(),
                         })
                         .await
-                        .unwrap();
+                        .map_err(|e| make_parse_err_with_msg(e.to_string()))?;
 
                     self.clear();
                 }
@@ -272,15 +291,24 @@ where
                 self.pre_buf.clear();
             }
         }
+
+        Ok(())
     }
 
-    pub async fn process(&mut self, prob: Ft, float_chunk_array: Array1<Ft>) {
-        let int_chunk_array =
-            &float_chunk_array * <Ft as num_traits::NumCast>::from(32767.0).unwrap();
+    pub async fn process(&mut self, prob: Ft, float_chunk_array: Array1<Ft>) -> Result<()> {
+        let int_chunk_array = &float_chunk_array
+            * match <Ft as num_traits::NumCast>::from(32767.0) {
+                Some(value) => value,
+                None => {
+                    return Err(make_parse_err_with_msg(
+                        "需要更大的浮点数类型! -_-".to_string(),
+                    ));
+                }
+            };
 
         let f32_chunk_array: Vec<f32> = float_chunk_array
             .into_iter()
-            .map(|data| data.to_f32().unwrap())
+            .filter_map(|data| data.to_f32())
             .collect();
 
         let bytes_u8: Vec<u8> = f32_chunk_array
@@ -295,15 +323,20 @@ where
         let (smthd_prb, smthd_db) = self.get_smoothed_values(prob, db);
 
         match self.stat_mchne {
-            SpeakingStates::Idle => self.update_on_idle(chunk_array, smthd_prb, smthd_db).await,
+            SpeakingStates::Idle => {
+                self.update_on_idle(chunk_array, smthd_prb, smthd_db)
+                    .await?
+            }
             SpeakingStates::Active => {
                 self.update_on_active(chunk_array, smthd_prb, smthd_db)
-                    .await
+                    .await?
             }
             SpeakingStates::InActive => {
                 self.update_on_inactive(chunk_array, smthd_prb, smthd_db)
-                    .await
+                    .await?
             }
         };
+
+        Ok(())
     }
 }

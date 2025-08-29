@@ -111,6 +111,8 @@ impl ModelHandeler {
         // let _k = std::cmp::min(n, m);
         let last_k_ele = result; //.slice(ndarray::s![m - k..]);
         // let _mean_value = last_k_ele.mean().unwrap_or(0.0);
+        // let first_value = last_k_ele.get(0).unwrap();
+
         let max_value = last_k_ele.fold(0.0, |acc, &x| if x > acc { x } else { acc });
 
         // dbg!(1. - max_value);

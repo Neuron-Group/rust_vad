@@ -51,11 +51,11 @@ where
         Self {
             orig_sr: It::from(16000).unwrap(),
             target_sr: It::from(16000).unwrap(),
-            prob_threshold: <Ft as num_traits::NumCast>::from(0.4).unwrap(),
-            db_threshold: <Ft as num_traits::NumCast>::from(20.0).unwrap(),
-            required_hits: 4,
-            required_misses: 30,
-            smoothing_window: 2,
+            prob_threshold: <Ft as num_traits::NumCast>::from(0.45).unwrap(),
+            db_threshold: <Ft as num_traits::NumCast>::from(30.0).unwrap(),
+            required_hits: 5,
+            required_misses: 40,
+            smoothing_window: 3,
             model_path: cfg.model_path.into_path_buf().into_boxed_path(),
         }
     }
