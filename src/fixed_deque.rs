@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 
-use num_traits::{FromPrimitive, Zero, float, int};
+use crate::type_trait::*;
+
 pub struct FixedLengthQueue<T> {
     pub queue: VecDeque<T>,
     length: usize,
@@ -50,14 +51,8 @@ impl<T> FixedLengthQueue<T> {
     }
 }
 
-impl<T> FixedLengthQueue<T>
-where
-    T: int::PrimInt + FromPrimitive + Zero + std::iter::Sum,
-{
-    pub fn mean_for_int<TOutput>(&self) -> Option<TOutput>
-    where
-        TOutput: From<T> + float::Float + FromPrimitive + std::iter::Sum,
-    {
+impl<T: IntTrait> FixedLengthQueue<T> {
+    pub fn mean_for_int<TOutput: FloatTrait + From<T>>(&self) -> Option<TOutput> {
         if self.is_empty() {
             return <TOutput as num_traits::NumCast>::from(0.0);
         }
@@ -72,10 +67,7 @@ where
     }
 }
 
-impl<T> FixedLengthQueue<T>
-where
-    T: float::Float + std::iter::Sum,
-{
+impl<T: FloatTrait> FixedLengthQueue<T> {
     pub fn mean(&self) -> Option<T> {
         match self.is_empty() {
             true => Some(<T as num_traits::NumCast>::from(0.0)?),

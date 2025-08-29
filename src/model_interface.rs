@@ -1,6 +1,7 @@
 use crate::{
     model_config,
     model_handler::SileroVAD,
+    type_trait::*,
     vad_error::{ConfigErr, make_parse_err_with_msg, make_type_convert_err},
 };
 use ndarray::Array1;
@@ -10,18 +11,9 @@ use num_traits::{FromPrimitive, ToPrimitive, Zero, float, int};
 pub struct Task(Array1<f32>);
 
 impl Task {
-    pub fn build_strict<Ft>(
+    pub fn build_strict<Ft: FloatTrait>(
         data: &Array1<Ft>,
-    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>>
-    where
-        Ft: float::Float
-            + float::FloatConst
-            + FromPrimitive
-            + Zero
-            + std::iter::Sum
-            + ndarray::ScalarOperand
-            + ToPrimitive,
-    {
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         if 512 != data.len() {
             return Err(make_parse_err_with_msg(
                 "data not match to 512 samples >_<".to_string(),
@@ -33,16 +25,7 @@ impl Task {
         ))
     }
 
-    pub fn build<Ft>(data: &Array1<Ft>) -> Self
-    where
-        Ft: float::Float
-            + float::FloatConst
-            + FromPrimitive
-            + Zero
-            + std::iter::Sum
-            + ndarray::ScalarOperand
-            + ToPrimitive,
-    {
+    pub fn build<Ft: FloatTrait>(data: &Array1<Ft>) -> Self {
         let target_len = 512;
 
         if data.len() >= target_len {
@@ -67,21 +50,9 @@ pub struct ModelHandeler {
 }
 
 impl ModelHandeler {
-    pub fn new<Ft, It>(
+    pub fn new<Ft: FloatTrait + From<It>, It: IntTrait>(
         cfg: &model_config::BaseConfig<Ft, It>,
-    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>>
-    where
-        Ft: float::Float
-            + float::FloatConst
-            + FromPrimitive
-            + Zero
-            + std::iter::Sum
-            + From<It>
-            + std::ops::Mul<Output = Ft>
-            + ndarray::ScalarOperand
-            + ToPrimitive,
-        It: int::PrimInt + FromPrimitive + Zero + std::iter::Sum,
-    {
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         Ok(Self {
             sr: match cfg.orig_sr.clone().to_u32() {
                 Some(v) => v,
@@ -93,17 +64,10 @@ impl ModelHandeler {
         })
     }
 
-    pub fn handle<Ft>(&mut self, tsk: Task) -> Result<Ft, Box<dyn std::error::Error + Send + Sync>>
-    where
-        Ft: float::Float
-            + float::FloatConst
-            + FromPrimitive
-            + Zero
-            + std::iter::Sum
-            + std::ops::Mul<Output = Ft>
-            + ndarray::ScalarOperand
-            + ToPrimitive,
-    {
+    pub fn handle<Ft: FloatTrait>(
+        &mut self,
+        tsk: Task,
+    ) -> Result<Ft, Box<dyn std::error::Error + Send + Sync>> {
         let result = self.model.process_chunk(&tsk.0.view(), self.sr)?;
 
         // let n = tsk.0.len();

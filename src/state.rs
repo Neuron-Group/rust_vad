@@ -1,7 +1,9 @@
-use crate::{fixed_deque::FixedLengthQueue, model_config, synaptic_filter::Synaptic, vad_error::*};
+use crate::{
+    fixed_deque::FixedLengthQueue, model_config, synaptic_filter::Synaptic, type_trait::*,
+    vad_error::*,
+};
 use bytes::{Bytes, BytesMut};
 use ndarray::Array1;
-use num_traits::{FromPrimitive, NumCast, ToPrimitive, Zero, float, int};
 use tokio::sync::mpsc::Sender;
 
 const MIN_CLIPS: u8 = 3;
@@ -12,18 +14,7 @@ pub enum SpeakingStates {
     InActive,
 }
 
-pub struct StateMachine<
-    Ft: float::Float
-        + float::FloatConst
-        + FromPrimitive
-        + Zero
-        + std::iter::Sum
-        + From<It>
-        + std::ops::Mul<Output = Ft>
-        + ndarray::ScalarOperand
-        + ToPrimitive,
-    It: int::PrimInt + FromPrimitive + Zero + std::iter::Sum,
-> {
+pub struct StateMachine<Ft: FloatTrait + From<It>, It: IntTrait> {
     stat_mchne: SpeakingStates,
 
     cfg: model_config::BaseConfig<Ft, It>,
@@ -46,33 +37,13 @@ pub struct StateMachine<
     output_channel: Sender<ReturnStruct<Ft>>,
 }
 
-pub struct ReturnStruct<Ft>
-where
-    Ft: float::Float
-        + float::FloatConst
-        + FromPrimitive
-        + Zero
-        + std::iter::Sum
-        + std::ops::Mul<Output = Ft>
-        + ndarray::ScalarOperand
-        + ToPrimitive,
-{
+pub struct ReturnStruct<Ft: FloatTrait> {
     pub probs: Vec<Ft>,
     pub dbs: Vec<Ft>,
     pub sig: Bytes,
 }
 
-impl<Ft> ReturnStruct<Ft>
-where
-    Ft: float::Float
-        + float::FloatConst
-        + FromPrimitive
-        + Zero
-        + std::iter::Sum
-        + std::ops::Mul<Output = Ft>
-        + ndarray::ScalarOperand
-        + ToPrimitive,
-{
+impl<Ft: FloatTrait> ReturnStruct<Ft> {
     pub fn new(probs: Vec<Ft>, dbs: Vec<Ft>, sig: String) -> Self {
         Self {
             probs,
@@ -86,19 +57,7 @@ where
     }
 }
 
-impl<Ft, It> StateMachine<Ft, It>
-where
-    It: int::PrimInt + FromPrimitive + Zero + std::iter::Sum,
-    Ft: float::Float
-        + float::FloatConst
-        + FromPrimitive
-        + Zero
-        + std::iter::Sum
-        + From<It>
-        + std::ops::Mul<Output = Ft>
-        + ndarray::ScalarOperand
-        + ToPrimitive,
-{
+impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
     pub fn new(cfg: &model_config::BaseConfig<Ft, It>, chnl: Sender<ReturnStruct<Ft>>) -> Self {
         Self {
             stat_mchne: SpeakingStates::Idle,
@@ -323,10 +282,12 @@ where
         let db = Self::calculate_db(&int_chunk_array);
 
         let (_, smthd_db) = self.get_smoothed_values(prob, db);
-
         let smthd_prb = self.bio_filter.update(prob.to_f32().unwrap());
-        dbg!(Result::<f32>::Ok(smthd_prb));
-        let smthd_prb = <Ft as NumCast>::from(smthd_prb).unwrap();
+        let smthd_prb = <Ft as num_traits::NumCast>::from(smthd_prb).unwrap();
+
+        // let (smthd_prb, smthd_db) = self.get_smoothed_values(prob, db);
+
+        dbg!(Result::<f32>::Ok(smthd_prb.to_f32().unwrap()));
 
         match self.stat_mchne {
             SpeakingStates::Idle => {

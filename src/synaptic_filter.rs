@@ -1,3 +1,5 @@
+use crate::type_trait::*;
+
 pub struct Synaptic {
     v_t: f32,
     k_p: f32,
@@ -15,7 +17,7 @@ impl Synaptic {
             k_p: 0.02,  // 激活曲线陡度
             t_max: 1.0, // 最大递质释放量
             a_r: 600.0, // 上升速率
-            a_d: 100.0, // 衰减速率
+            a_d: 70.0,  // 衰减速率
             dt: 0.001,  // 时间步长
             s: 0.0,     // 递质浓度初始值
         }

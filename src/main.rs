@@ -7,6 +7,7 @@ pub mod model_handler;
 pub mod model_interface;
 pub mod state;
 pub mod synaptic_filter;
+pub mod type_trait;
 pub mod vad_error;
 pub mod ws_handler;
 

@@ -129,7 +129,7 @@ pub async fn audio_websocket_handler(
 
     tokio::spawn(async move {
         while let Some(Ok(msg)) = rcvr.next().await {
-            // dbg!(msg.clone());
+            dbg!(msg.clone());
             match msg {
                 Message::Text(text) => match serde_json::from_str::<VoiceData>(&text) {
                     Ok(data) => {
@@ -142,7 +142,7 @@ pub async fn audio_websocket_handler(
                 },
                 Message::Binary(data) => {
                     // dbg!(data.clone());
-                    let float_array = convert_bytes_to_f32_array(&data, 16);
+                    let float_array = convert_bytes_to_f32_array(&data, 32);
                     // println!("{:?}", float_array.clone());
                     if buf
                         .push_vec(float_array)
