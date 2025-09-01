@@ -27,10 +27,10 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> BaseConfig<Ft, It> {
         Self {
             orig_sr: It::from(16000).unwrap(),
             target_sr: It::from(16000).unwrap(),
-            prob_threshold: <Ft as num_traits::NumCast>::from(0.2).unwrap(),
+            prob_threshold: <Ft as num_traits::NumCast>::from(0.4).unwrap(),
             db_threshold: <Ft as num_traits::NumCast>::from(30.0).unwrap(),
-            required_hits: 10,
-            required_misses: 50,
+            required_hits: 5,
+            required_misses: 10,
             smoothing_window: 3,
             model_path: cfg.model_path.into_path_buf().into_boxed_path(),
         }

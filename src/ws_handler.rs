@@ -1,4 +1,5 @@
 use crate::{
+    base64_2_vecu8::*,
     convert_pcm::convert_bytes_to_f32_array,
     data_model::VoiceData,
     model_config::BaseConfig,
@@ -128,22 +129,41 @@ pub async fn audio_websocket_handler(
     tokio::spawn(async move { wkr.handler().await });
 
     tokio::spawn(async move {
+        // let mut history = vec![];
+        // let mut cnt = 0;
+
         while let Some(Ok(msg)) = rcvr.next().await {
             // dbg!(msg.clone());
             match msg {
-                Message::Text(text) => match serde_json::from_str::<VoiceData>(&text) {
-                    Ok(data) => {
+                Message::Text(text) => {
+                    // dbg!(&text);
+                    if let Ok(data) = serde_json::from_str::<VoiceData>(&text) {
                         // dbg!(data.clone());
-                        if let serde_json::Value::String(str) = data.voice {
-                            // dbg!(str);
+                        if let serde_json::Value::String(s) = data.audio {
+                            let pcm_data = base64_2_vecu8(s).unwrap();
+                            let float_array = convert_bytes_to_f32_array(&pcm_data, 16);
+                            // history = history.into_iter().chain(float_array.clone()).collect();
+                            // cnt += 1;
+
+                            if buf
+                                .push_vec(float_array)
+                                .await
+                                .map_err(|e| {
+                                    warn!("{:?}", e);
+                                    e
+                                })
+                                .is_err()
+                            {
+                                continue;
+                            };
                         }
                     }
-                    Err(_) => (),
-                },
+                }
                 Message::Binary(data) => {
                     // dbg!(data.clone());
-                    let float_array = convert_bytes_to_f32_array(&data, 32);
+                    let float_array = convert_bytes_to_f32_array(&data, 16);
                     // println!("{:?}", float_array.clone());
+
                     if buf
                         .push_vec(float_array)
                         .await
@@ -158,6 +178,9 @@ pub async fn audio_websocket_handler(
                 }
                 _ => (),
             }
+            // if cnt == 100 {
+            //     crate::play_audio::play_audio(&history, 16000);
+            // }
         }
     });
 

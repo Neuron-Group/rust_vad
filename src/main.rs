@@ -1,3 +1,4 @@
+pub mod base64_2_vecu8;
 pub mod config;
 pub mod convert_pcm;
 pub mod data_model;
@@ -5,6 +6,7 @@ pub mod fixed_deque;
 pub mod model_config;
 pub mod model_handler;
 pub mod model_interface;
+pub mod play_audio;
 pub mod state;
 pub mod synaptic_filter;
 pub mod type_trait;

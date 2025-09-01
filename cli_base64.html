@@ -196,24 +196,6 @@
             overflow: hidden;
         }
         
-        .visualizer {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-        }
-        
-        .bar {
-            flex: 1;
-            background: rgba(46, 204, 113, 0.8);
-            margin: 0 1px;
-            min-height: 1px;
-        }
-        
         .result-container {
             background: rgba(0, 0, 0, 0.4);
             border-radius: 10px;
@@ -415,6 +397,17 @@
             height: 0%;
             transition: height 0.05s;
         }
+        
+        .json-preview {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
@@ -491,6 +484,11 @@
             <div class="result-content" id="serverResponse">等待服务器响应...</div>
         </div>
         
+        <div class="card">
+            <div class="card-title"><i class="fas fa-code"></i> JSON数据预览</div>
+            <div class="json-preview" id="jsonPreview">{"uuid":"","start_timestamp":0,"audio":"","image":""}</div>
+        </div>
+        
         <div class="log-container" id="logContainer">
             <div class="log-entry info">系统已就绪，请获取麦克风权限并连接服务器</div>
         </div>
@@ -510,6 +508,8 @@
         let sentBytes = 0;
         let startTime = null;
         let timerInterval = null;
+        let sessionUUID = null;
+        let sessionStartTimestamp = null;
         
         // DOM元素
         const connectBtn = document.getElementById('connectBtn');
@@ -530,6 +530,7 @@
         const streamStatus = document.getElementById('streamStatus');
         const sampleRateEl = document.getElementById('sampleRate');
         const signalMeter = document.getElementById('signalMeter');
+        const jsonPreview = document.getElementById('jsonPreview');
         
         // 初始化可视化条
         function initSignalMeter() {
@@ -560,6 +561,15 @@
                 } else {
                     bar.style.height = '0%';
                 }
+            });
+        }
+        
+        // 生成UUID
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
             });
         }
         
@@ -680,6 +690,10 @@
             sentBytes = 0;
             sentBytesEl.textContent = '0 B';
             
+            // 生成会话UUID和时间戳
+            sessionUUID = generateUUID();
+            sessionStartTimestamp = Date.now();
+            
             // 设置处理回调
             processor.onaudioprocess = (event) => {
                 if (!isStreaming) return;
@@ -691,36 +705,52 @@
                 // 转换为目标格式 (16kHz, 16bit PCM)
                 const outputData = processAudioData(inputData, sourceSampleRate);
                 
-                // 准备发送的数据
-                const buffer = new ArrayBuffer(outputData.length * 2); // 16位 = 2字节
-                const view = new DataView(buffer);
+                // 将音频数据转换为Base64字符串
+                const base64Audio = arrayBufferToBase64(outputData.buffer);
                 
-                for (let i = 0; i < outputData.length; i++) {
-                    view.setInt16(i * 2, outputData[i], true);
-                }
+                // 构造JSON对象
+                const voiceData = {
+                    uuid: sessionUUID,
+                    start_timestamp: sessionStartTimestamp,
+                    audio: base64Audio,
+                    image: "" // 图片数据留空
+                };
                 
-                // 发送配置信息（在第一包）
-                if (packetCounter === 0) {
-                    const config = {
-                        type: "config",
-                        sampleRate: 16000,
-                        channelCount: 1,
-                        bitsPerSample: 16
-                    };
-                    websocket.send(JSON.stringify(config));
-                    addLog('音频配置已发送: ' + JSON.stringify(config), 'info');
-                }
+                // 更新JSON预览
+                updateJsonPreview(voiceData);
                 
-                // 发送数据
-                websocket.send(buffer);
+                // 发送JSON数据
+                websocket.send(JSON.stringify(voiceData));
                 
                 // 更新统计数据
-                sentBytes += buffer.byteLength;
+                sentBytes += JSON.stringify(voiceData).length;
                 packetCounter++;
                 sentBytesEl.textContent = formatFileSize(sentBytes);
             };
             
             addLog('音频处理引擎已启动，开始流式传输', 'success');
+        }
+        
+        // 更新JSON预览
+        function updateJsonPreview(voiceData) {
+            const preview = {
+                uuid: voiceData.uuid,
+                start_timestamp: voiceData.start_timestamp,
+                audio: voiceData.audio.substring(0, 30) + "...",
+                image: voiceData.image
+            };
+            jsonPreview.textContent = JSON.stringify(preview, null, 2);
+        }
+        
+        // ArrayBuffer转Base64
+        function arrayBufferToBase64(buffer) {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            const len = bytes.byteLength;
+            for (let i = 0; i < len; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary);
         }
         
         // 处理音频数据 - 下采样到16kHz并转换为16位PCM

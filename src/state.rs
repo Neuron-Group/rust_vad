@@ -1,6 +1,6 @@
 use crate::{
-    fixed_deque::FixedLengthQueue, model_config, synaptic_filter::Synaptic, type_trait::*,
-    vad_error::*,
+    base64_2_vecu8::*, convert_pcm::*, fixed_deque::FixedLengthQueue, model_config, play_audio::*,
+    synaptic_filter::Synaptic, type_trait::*, vad_error::*,
 };
 use bytes::{Bytes, BytesMut};
 use ndarray::Array1;
@@ -237,6 +237,9 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
 
                     out_bytes.extend(self.bytes_buf.clone());
 
+                    let data = convert_bytes_to_f32_array(&out_bytes.clone().to_vec()[..], 32);
+                    play_audio(&data, 16000);
+
                     self.output_channel
                         .send(ReturnStruct {
                             probs: self.prob_buf.clone(),
@@ -281,12 +284,12 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
 
         let db = Self::calculate_db(&int_chunk_array);
 
-        let (_, smthd_db) = self.get_smoothed_values(prob, db);
-        let smthd_prb = self.bio_filter.update(prob);
+        // let (_, smthd_db) = self.get_smoothed_values(prob, db);
+        // let smthd_prb = self.bio_filter.update(prob);
 
-        // let (smthd_prb, smthd_db) = self.get_smoothed_values(prob, db);
+        let (smthd_prb, smthd_db) = self.get_smoothed_values(prob, db);
 
-        // dbg!(Result::<f32>::Ok(smthd_prb.to_f32().unwrap()));
+        dbg!(Result::<f32>::Ok(smthd_prb.to_f32().unwrap()));
 
         match self.stat_mchne {
             SpeakingStates::Idle => {
