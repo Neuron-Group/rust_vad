@@ -8,6 +8,10 @@ pub struct Synaptic<Ft: FloatTrait> {
     a_d: Ft,
     dt: Ft,
     s: Ft,
+
+    two: Ft,
+    half: Ft,
+    sixth: Ft,
 }
 
 impl<Ft> Synaptic<Ft>
@@ -23,6 +27,10 @@ where
             a_d: Ft::from_f32(70.0).expect("Failed to convert a_d"), // 衰减速率
             dt: Ft::from_f32(0.001).expect("Failed to convert dt"), // 时间步长
             s: Ft::zero(),                                          // 初始递质浓度
+
+            two: Ft::from_f32(2.0).expect("Failed to convert two"),
+            half: Ft::from_f32(0.5).expect("Failed to convert half"),
+            sixth: Ft::from_f32(1.0 / 6.0).expect("Failed to convert sixth"),
         }
     }
 
@@ -31,26 +39,21 @@ where
     }
 
     pub fn update(&mut self, v_pre: Ft) -> Ft {
-        // 计算递质释放概率 (使用 Ft 的 exp 方法)
+        // 计算递质浓度
         let exp_arg = -((v_pre - self.v_t) / self.k_p);
         let release_prob = self.t_max / (Ft::one() + exp_arg.exp());
 
         // 定义微分方程 ds/dt = f(s)
         let f = |s: Ft| self.a_r * release_prob * (Ft::one() - s) - self.a_d * s;
 
-        // 四阶龙格-库塔常量
-        let two = Ft::from_f32(2.0).unwrap();
-        let half = Ft::from_f32(0.5).unwrap();
-        let sixth = Ft::from_f32(1.0 / 6.0).unwrap();
-
         // RK4 计算
         let k1 = f(self.s);
-        let k2 = f(self.s + half * self.dt * k1);
-        let k3 = f(self.s + half * self.dt * k2);
+        let k2 = f(self.s + self.half * self.dt * k1);
+        let k3 = f(self.s + self.half * self.dt * k2);
         let k4 = f(self.s + self.dt * k3);
 
         // 更新递质浓度 (使用 Ft 的运算)
-        self.s = self.s + self.dt * sixth * (k1 + two * k2 + two * k3 + k4);
+        self.s = self.s + self.dt * self.sixth * (k1 + self.two * k2 + self.two * k3 + k4);
 
         // 限制在 [0,1] 区间
         self.s = self.s.max(Ft::zero()).min(Ft::one());
