@@ -237,8 +237,8 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
 
                     out_bytes.extend(self.bytes_buf.clone());
 
-                    let data = convert_bytes_to_f32_array(&out_bytes.clone().to_vec()[..], 32);
-                    play_audio(&data, 16000);
+                    // let data = convert_bytes_to_f32_array(&out_bytes.clone().to_vec()[..], 32);
+                    // play_audio(&data, 16000);
 
                     self.output_channel
                         .send(ReturnStruct {

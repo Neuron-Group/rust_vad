@@ -27,7 +27,7 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> BaseConfig<Ft, It> {
         Self {
             orig_sr: It::from(16000).unwrap(),
             target_sr: It::from(16000).unwrap(),
-            prob_threshold: <Ft as num_traits::NumCast>::from(0.4).unwrap(),
+            prob_threshold: <Ft as num_traits::NumCast>::from(0.45).unwrap(),
             db_threshold: <Ft as num_traits::NumCast>::from(30.0).unwrap(),
             required_hits: 5,
             required_misses: 10,

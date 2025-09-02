@@ -1,2 +1,2 @@
 
-model_path = "./asserts/es_v1.onnx"
+model_path = "./asserts/de_v4_large.onnx"
