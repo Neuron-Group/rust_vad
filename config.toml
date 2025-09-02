@@ -1,2 +1,2 @@
 
-model_path = "./asserts/de_v4_large.onnx"
+model_path = "./asserts/silero_vad_16k_op15.onnx"

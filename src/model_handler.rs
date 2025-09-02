@@ -1,10 +1,14 @@
+
 //! Silero VAD model implementation
 //!
 //! This module provides the core Silero VAD model implementation using the ONNX runtime.
 //! It supports both single chunk and batch processing of audio data.
 
-use crate::vad_error::{Result, make_model_handler_err_with_msg, make_parse_err_with_msg};
-use ndarray::{Array1, Array2, ArrayView1};
+use crate::vad_error::{
+    Result, make_model_handler_err, make_model_handler_err_with_msg, make_parse_err,
+    make_parse_err_with_msg,
+};
+use ndarray::{Array1, Array2, Array3, ArrayView1};
 use ort::{
     execution_providers::{CUDAExecutionProvider, TensorRTExecutionProvider},
     session::{Session, builder::GraphOptimizationLevel},
@@ -33,6 +37,7 @@ const MODEL_URL: &str = "https://models.silero.ai/models/en/en_v6_xlarge.onnx";
 /// ```
 pub struct SileroVAD {
     session: Session,
+    state: Array3<f32>,
     context: Array2<f32>,
     last_sr: u32,
     last_batch_size: usize,
@@ -95,6 +100,7 @@ impl SileroVAD {
 
         Ok(Self {
             session,
+            state: Array3::zeros((2, 1, 128)),
             context: Array2::zeros((1, 64)),
             last_sr: 0,
             last_batch_size: 0,
@@ -110,6 +116,7 @@ impl SileroVAD {
     ///
     /// * `batch_size` - The new batch size for processing
     pub fn reset_states(&mut self, batch_size: usize) {
+        self.state = Array3::zeros((2, batch_size, 128));
         self.context = Array2::zeros((batch_size, 64));
     }
 
@@ -155,6 +162,8 @@ impl SileroVAD {
     /// * The sampling rate is not supported
     /// * Model inference fails
     pub fn process_chunk(&mut self, x: &ArrayView1<f32>, sr: u32) -> Result<Array1<f32>> {
+        let batch_size = 1;
+
         self.validate_input(x, sr)?;
 
         let batch_size = 1;
@@ -176,21 +185,48 @@ impl SileroVAD {
         });
 
         // Create input tensor
+        // 准备采样率输入（作为 i64 标量）
+        let shape: Vec<i64> = vec![];
+        let data: Vec<i64> = vec![sr as i64];
+        let sr_tensor = Tensor::from_array((shape, data))
+            .map_err(|e| make_parse_err_with_msg(e.to_string()))?;
         let input_shape = input.shape().to_vec();
         let input_data = input.into_raw_vec();
 
         debug!("Processing input tensor of shape {:?}", input_shape);
 
         // Create input tensor with just the 'input' name
-        let inputs = vec![(
-            "input",
-            Tensor::from_array((input_shape, input_data.clone()))?.into_dyn(),
-        )];
+        let inputs = vec![
+            (
+                "input",
+                Tensor::from_array((input_shape, input_data.clone()))?.into_dyn(),
+            ),
+            (
+                "state",
+                Tensor::from_array((
+                    self.state.shape().to_vec(),
+                    self.state.clone().into_raw_vec(),
+                ))?
+                .into_dyn(),
+            ),
+            ("sr", sr_tensor.into_dyn()),
+        ];
 
         let outputs = self.session.run(inputs)?;
 
+        // 更新状态
+        if outputs.len() >= 2 {
+            let new_state = outputs[1].try_extract_tensor::<f32>()?;
+            let new_state_shape = new_state.shape().to_vec();
+            self.state = Array3::from_shape_vec(
+                (new_state_shape[0], new_state_shape[1], new_state_shape[2]),
+                new_state.iter().cloned().collect(),
+            )
+            .map_err(|_| make_model_handler_err())?;
+        }
+
         // Update context from the last 64 elements of input_data
-        let context_data = input_data[input_data.len() - 64..].to_vec();
+        let context_data = input_data[input_data.len() - 64 * batch_size..].to_vec();
         self.context = Array2::from_shape_vec((batch_size, 64), context_data)
             .map_err(|e| make_parse_err_with_msg(e.to_string()))?;
 
@@ -204,6 +240,7 @@ impl SileroVAD {
         ))
     }
 
+    /*
     /// Process a batch of audio chunks
     ///
     /// # Arguments
@@ -279,4 +316,6 @@ impl SileroVAD {
             output_tensor.iter().cloned().collect::<Vec<f32>>(),
         ))
     }
+    */
 }
+

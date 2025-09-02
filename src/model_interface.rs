@@ -81,6 +81,6 @@ impl ModelHandeler {
 
         // dbg!(1. - max_value);
 
-        Ft::from_f32(1. - max_value).ok_or_else(make_type_convert_err)
+        Ft::from_f32(max_value).ok_or_else(make_type_convert_err)
     }
 }
