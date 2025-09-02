@@ -1,12 +1,14 @@
 use crate::{
     model_config,
-    model_handler::SileroVAD,
     type_trait::*,
     vad_error::{ConfigErr, make_parse_err_with_msg, make_type_convert_err},
 };
 use ndarray::Array1;
-use num_traits::{FromPrimitive, ToPrimitive, Zero, float, int};
+// use num_traits::{FromPrimitive, ToPrimitive, Zero, float, int};
 // use silero_vad_rs::SileroVAD;
+
+pub mod model_handler;
+use model_handler::*;
 
 pub struct Task(Array1<f32>);
 

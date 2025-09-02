@@ -1,13 +1,9 @@
-
 //! Silero VAD model implementation
 //!
 //! This module provides the core Silero VAD model implementation using the ONNX runtime.
 //! It supports both single chunk and batch processing of audio data.
 
-use crate::vad_error::{
-    Result, make_model_handler_err, make_model_handler_err_with_msg, make_parse_err,
-    make_parse_err_with_msg,
-};
+use crate::vad_error::*;
 use ndarray::{Array1, Array2, Array3, ArrayView1};
 use ort::{
     execution_providers::{CUDAExecutionProvider, TensorRTExecutionProvider},
@@ -318,4 +314,3 @@ impl SileroVAD {
     }
     */
 }
-

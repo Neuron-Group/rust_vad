@@ -2,8 +2,8 @@ use crate::{
     base64_2_vecu8::*,
     convert_pcm::convert_bytes_to_f32_array,
     data_model::VoiceData,
+    handlers::vad::{ModelHandeler, Task},
     model_config::BaseConfig,
-    model_interface::{ModelHandeler, Task},
     state::{self, ReturnStruct},
     vad_error::*,
 };
