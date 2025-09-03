@@ -78,7 +78,7 @@ impl ModelHandler {
 
         // dbg!(1. - max_value);
         //
-        dbg!(Ok::<f32, vad_error::ConfigErr>(max_value));
+        // dbg!(Ok::<f32, vad_error::ConfigErr>(max_value));
 
         Ft::from_f32(max_value).ok_or_else(make_type_convert_err)
     }

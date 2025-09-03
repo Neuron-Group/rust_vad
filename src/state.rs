@@ -27,7 +27,7 @@ pub struct StateMachine<Ft: FloatTrait + From<It>, It: IntTrait> {
 
     miss_count: usize,
     hit_count: usize,
-
+    // pre_sample_cnt: usize,
     prob_window: FixedLengthQueue<Ft>,
     db_window: FixedLengthQueue<Ft>,
 

@@ -3,7 +3,7 @@ use ndarray::ArrayView1;
 use std::path::Path;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
-const INPUT_LEN: usize = 32000;
+const INPUT_LEN: usize = 1600000;
 pub struct WhisperASR<'a> {
     ctx: WhisperContext,
     params: FullParams<'a, 'a>,
@@ -19,7 +19,9 @@ impl<'a> WhisperASR<'a> {
         params.set_initial_prompt("你好！");
         params.set_translate(false);
         params.set_language(Option::Some("zh"));
-        params.set_no_context(true);
+        // params.set_length_penalty(-1.0);
+        // params.set_temperature(1.0);
+        // params.set_no_context(true);
 
         Ok(Self {
             ctx: WhisperContext::new_with_params(
@@ -73,14 +75,14 @@ impl<'a> WhisperASR<'a> {
     }
 
     pub fn process_chunk(&mut self, x: &ArrayView1<f32>, sr: u32) -> Result<String> {
-        self.validate_input(x, sr)?;
+        // self.validate_input(x, sr)?;
 
         let x = x.to_vec();
         self.process_chunk_with_vec(x, sr)
     }
 
     pub fn process_chunk_with_vec(&mut self, x: Vec<f32>, sr: u32) -> Result<String> {
-        self.validate_input_on_vec(&x, sr)?;
+        // self.validate_input_on_vec(&x, sr)?;
 
         let mut state = self.ctx.create_state().map_err(|_| {
             make_model_handler_err_with_msg("create asr state failed TAT".to_string())
