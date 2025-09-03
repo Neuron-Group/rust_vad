@@ -1,7 +1,9 @@
 use crate::{
     model_config,
     type_trait::*,
-    vad_error::{ConfigErr, make_parse_err_with_msg, make_type_convert_err},
+    vad_error::{
+        self, ConfigErr, Result, make_config_err, make_parse_err_with_msg, make_type_convert_err,
+    },
 };
 use ndarray::Array1;
 // use num_traits::{FromPrimitive, ToPrimitive, Zero, float, int};
@@ -13,9 +15,7 @@ use model_handler::*;
 pub struct Task(Array1<f32>);
 
 impl Task {
-    pub fn build_strict<Ft: FloatTrait>(
-        data: &Array1<Ft>,
-    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn build_strict<Ft: FloatTrait>(data: &Array1<Ft>) -> Result<Self> {
         if 512 != data.len() {
             return Err(make_parse_err_with_msg(
                 "data not match to 512 samples >_<".to_string(),
@@ -46,30 +46,25 @@ impl Task {
     }
 }
 
-pub struct ModelHandeler {
+pub struct ModelHandler {
     pub model: SileroVAD,
     sr: u32,
 }
 
-impl ModelHandeler {
+impl ModelHandler {
     pub fn new<Ft: FloatTrait + From<It>, It: IntTrait>(
         cfg: &model_config::BaseConfig<Ft, It>,
-    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Self> {
         Ok(Self {
             sr: match cfg.orig_sr.clone().to_u32() {
                 Some(v) => v,
                 None => return Err(make_type_convert_err()),
             },
-            model: SileroVAD::new(&cfg.model_path).map_err(|_| {
-                Box::new(ConfigErr::new()) as Box<dyn std::error::Error + Send + Sync>
-            })?,
+            model: SileroVAD::new(&cfg.model_path).map_err(|_| make_config_err())?,
         })
     }
 
-    pub fn handle<Ft: FloatTrait>(
-        &mut self,
-        tsk: Task,
-    ) -> Result<Ft, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn handle<Ft: FloatTrait>(&mut self, tsk: Task) -> Result<Ft> {
         let result = self.model.process_chunk(&tsk.0.view(), self.sr)?;
 
         // let n = tsk.0.len();
@@ -82,6 +77,8 @@ impl ModelHandeler {
         let max_value = last_k_ele.fold(0.0, |acc, &x| if x > acc { x } else { acc });
 
         // dbg!(1. - max_value);
+        //
+        dbg!(Ok::<f32, vad_error::ConfigErr>(max_value));
 
         Ft::from_f32(max_value).ok_or_else(make_type_convert_err)
     }

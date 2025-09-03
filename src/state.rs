@@ -1,9 +1,9 @@
 use crate::{
-    base64_2_vecu8::*, convert_pcm::*, fixed_deque::FixedLengthQueue, model_config, play_audio::*,
-    synaptic_filter::Synaptic, type_trait::*, vad_error::*,
+    fixed_deque::FixedLengthQueue, model_config, play_audio::*, type_trait::*, vad_error::*,
 };
 use bytes::{Bytes, BytesMut};
 use ndarray::Array1;
+use num_traits::NumCast;
 use tokio::sync::mpsc::Sender;
 
 const MIN_CLIPS: u8 = 3;
@@ -23,6 +23,7 @@ pub struct StateMachine<Ft: FloatTrait + From<It>, It: IntTrait> {
     db_buf: Vec<Ft>,
 
     bytes_buf: BytesMut,
+    vec_buf: Option<Vec<Ft>>,
 
     miss_count: usize,
     hit_count: usize,
@@ -30,9 +31,8 @@ pub struct StateMachine<Ft: FloatTrait + From<It>, It: IntTrait> {
     prob_window: FixedLengthQueue<Ft>,
     db_window: FixedLengthQueue<Ft>,
 
-    bio_filter: Synaptic<Ft>,
-
     pre_buf: Vec<Bytes>,
+    pre_buf_vec: Option<Vec<Vec<Ft>>>,
 
     output_channel: Sender<ReturnStruct<Ft>>,
 }
@@ -41,6 +41,7 @@ pub struct ReturnStruct<Ft: FloatTrait> {
     pub probs: Vec<Ft>,
     pub dbs: Vec<Ft>,
     pub sig: Bytes,
+    pub audio_vec: Option<Vec<Ft>>,
 }
 
 impl<Ft: FloatTrait> ReturnStruct<Ft> {
@@ -49,6 +50,7 @@ impl<Ft: FloatTrait> ReturnStruct<Ft> {
             probs,
             dbs,
             sig: Bytes::from(sig),
+            audio_vec: None,
         }
     }
 
@@ -66,6 +68,7 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
             db_buf: Vec::new(),
 
             bytes_buf: BytesMut::new(),
+            vec_buf: Some(Vec::new()),
 
             miss_count: 0,
             hit_count: 0,
@@ -73,9 +76,8 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
             prob_window: FixedLengthQueue::new(cfg.smoothing_window),
             db_window: FixedLengthQueue::new(cfg.smoothing_window),
 
-            bio_filter: Synaptic::new(),
-
             pre_buf: Vec::new(),
+            pre_buf_vec: Some(Vec::new()),
 
             cfg: cfg.clone(),
 
@@ -123,10 +125,18 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
         (smoothed_prob, smoothed_db)
     }
 
-    fn update(&mut self, chunk_bytes: Bytes, prob: Ft, db: Ft) {
+    fn update(&mut self, chunk_bytes: Bytes, chunk_vec: Vec<Ft>, prob: Ft, db: Ft) {
         self.prob_buf.push(prob);
         self.db_buf.push(db);
         self.bytes_buf.extend(chunk_bytes);
+        self.vec_buf = Some(
+            self.vec_buf
+                .take()
+                .unwrap()
+                .into_iter()
+                .chain(chunk_vec)
+                .collect(),
+        );
     }
 
     fn clear(&mut self) {
@@ -138,10 +148,14 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
     async fn update_on_idle(
         &mut self,
         chnk_byts: Bytes,
+        chnk_vec: Vec<Ft>,
         smthd_prb: Ft,
         smthd_db: Ft,
     ) -> Result<()> {
         self.pre_buf.push(chnk_byts.clone());
+        if let Some(ls) = &mut self.pre_buf_vec {
+            ls.push(chnk_vec);
+        }
 
         if smthd_prb >= self.cfg.prob_threshold && smthd_db >= self.cfg.db_threshold {
             self.hit_count += 1;
@@ -149,7 +163,7 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
             if self.hit_count >= self.cfg.required_hits {
                 // 切换状态到 ACTIVE
                 self.stat_mchne = SpeakingStates::Active;
-                self.update(chnk_byts, smthd_prb, smthd_db);
+                // self.update(chnk_byts, chnk_vec, smthd_prb, smthd_db);
                 self.hit_count = 0;
                 self.output_channel
                     .send(ReturnStruct::new(vec![], vec![], String::from("<|PAUSE|>")))
@@ -168,10 +182,11 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
     async fn update_on_active(
         &mut self,
         chnk_byts: Bytes,
+        chnk_vec: Vec<Ft>,
         smthd_prb: Ft,
         smthd_db: Ft,
     ) -> Result<()> {
-        self.update(chnk_byts, smthd_prb, smthd_db);
+        self.update(chnk_byts, chnk_vec, smthd_prb, smthd_db);
 
         if smthd_prb >= self.cfg.prob_threshold && smthd_db >= self.cfg.db_threshold {
             self.miss_count = 0;
@@ -190,12 +205,13 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
     async fn update_on_inactive(
         &mut self,
         chnk_byts: Bytes,
+        chnk_vec: Vec<Ft>,
         smthd_prb: Ft,
         smthd_db: Ft,
     ) -> Result<()> {
         // dbg!("connected>_<");
 
-        self.update(chnk_byts, smthd_prb, smthd_db);
+        self.update(chnk_byts, chnk_vec, smthd_prb, smthd_db);
 
         if smthd_prb >= self.cfg.prob_threshold && smthd_db >= self.cfg.db_threshold {
             self.hit_count += 1;
@@ -237,14 +253,41 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
 
                     out_bytes.extend(self.bytes_buf.clone());
 
-                    // let data = convert_bytes_to_f32_array(&out_bytes.clone().to_vec()[..], 32);
-                    // play_audio(&data, 16000);
+                    let mut out_vec: Vec<Ft> = self
+                        .pre_buf_vec
+                        .take()
+                        .unwrap()
+                        .into_iter()
+                        .rev()
+                        .take(self.cfg.required_hits)
+                        .rev()
+                        .flatten()
+                        .collect();
+                    self.pre_buf_vec = Some(Vec::new());
+
+                    out_vec = out_vec
+                        .into_iter()
+                        .chain(self.vec_buf.take().unwrap())
+                        .collect();
+
+                    self.vec_buf = Some(Vec::new());
+
+                    /*
+                                        let mut data: Vec<f32> = Vec::new();
+                                        data = out_vec
+                                            .clone()
+                                            .into_iter()
+                                            .map(|x| x.to_f32().unwrap())
+                                            .collect();
+                                        play_audio(&data, 16000);
+                    */
 
                     self.output_channel
                         .send(ReturnStruct {
                             probs: self.prob_buf.clone(),
                             dbs: self.db_buf.clone(),
                             sig: out_bytes.into(),
+                            audio_vec: Some(out_vec),
                         })
                         .await
                         .map_err(|e| make_parse_err_with_msg(e.to_string()))?;
@@ -276,8 +319,14 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
             .collect();
 
         let bytes_u8: Vec<u8> = f32_chunk_array
+            .clone()
             .into_iter()
             .flat_map(|data| data.to_le_bytes().to_vec())
+            .collect();
+
+        let ft_chunk_array: Vec<Ft> = f32_chunk_array
+            .into_iter()
+            .map(|v| <Ft as NumCast>::from(v).unwrap_or(Ft::zero()))
             .collect();
 
         let chunk_array = Bytes::from(bytes_u8);
@@ -289,19 +338,19 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
 
         let (smthd_prb, smthd_db) = self.get_smoothed_values(prob, db);
 
-        dbg!(Result::<f32>::Ok(smthd_prb.to_f32().unwrap()));
+        // dbg!(Result::<f32>::Ok(smthd_prb.to_f32().unwrap()));
 
         match self.stat_mchne {
             SpeakingStates::Idle => {
-                self.update_on_idle(chunk_array, smthd_prb, smthd_db)
+                self.update_on_idle(chunk_array, ft_chunk_array, smthd_prb, smthd_db)
                     .await?
             }
             SpeakingStates::Active => {
-                self.update_on_active(chunk_array, smthd_prb, smthd_db)
+                self.update_on_active(chunk_array, ft_chunk_array, smthd_prb, smthd_db)
                     .await?
             }
             SpeakingStates::InActive => {
-                self.update_on_inactive(chunk_array, smthd_prb, smthd_db)
+                self.update_on_inactive(chunk_array, ft_chunk_array, smthd_prb, smthd_db)
                     .await?
             }
         };

@@ -20,6 +20,8 @@ pub struct BaseConfig<Ft: FloatTrait + From<It>, It: IntTrait> {
     pub smoothing_window: usize,
 
     pub model_path: Box<std::path::Path>,
+
+    pub asr_model_path: Box<std::path::Path>,
 }
 
 impl<Ft: FloatTrait + From<It>, It: IntTrait> BaseConfig<Ft, It> {
@@ -33,6 +35,7 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> BaseConfig<Ft, It> {
             required_misses: 20,
             smoothing_window: 2,
             model_path: cfg.model_path.into_path_buf().into_boxed_path(),
+            asr_model_path: cfg.asr_model_path.into_path_buf().into_boxed_path(),
         }
     }
 }

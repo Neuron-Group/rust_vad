@@ -1,0 +1,29 @@
+2025-09-02T08:30:35.946Z INFO  [rustowlc::core] start borrowck of DefId(0:11 ~ build_script_build[2d58]::main)
+2025-09-02T08:30:37.057Z INFO  [rustowlc::core::analyze] facts of DefId(0:11 ~ build_script_build[2d58]::main) prepared; start analyze of DefId(0:11 ~ build_script_build[2d58]::main)
+2025-09-02T08:30:37.076Z INFO  [rustowlc::core::analyze] start re-computing borrow check with dump: true
+2025-09-02T08:30:37.076Z INFO  [rustowlc::core::analyze] facts of DefId(0:12 ~ build_script_build[2d58]::main::{closure#0}) prepared; start analyze of DefId(0:12 ~ build_script_build[2d58]::main::{closure#0})
+2025-09-02T08:30:37.077Z INFO  [rustowlc::core::analyze] start re-computing borrow check with dump: true
+2025-09-02T08:30:37.077Z INFO  [rustowlc::core] start borrowck of DefId(0:13 ~ build_script_build[2d58]::get_cpp_link_stdlib)
+2025-09-02T08:30:37.077Z INFO  [rustowlc::core::analyze] facts of DefId(0:13 ~ build_script_build[2d58]::get_cpp_link_stdlib) prepared; start analyze of DefId(0:13 ~ build_script_build[2d58]::get_cpp_link_stdlib)
+2025-09-02T08:30:37.078Z INFO  [rustowlc::core::analyze] start re-computing borrow check with dump: true
+2025-09-02T08:30:37.078Z INFO  [rustowlc::core] start borrowck of DefId(0:14 ~ build_script_build[2d58]::add_link_search_path)
+2025-09-02T08:30:37.079Z INFO  [rustowlc::core::analyze] borrow check finished
+2025-09-02T08:30:37.080Z INFO  [rustowlc::core::analyze] borrow check finished
+2025-09-02T08:30:37.088Z INFO  [rustowlc::core::analyze] facts of DefId(0:14 ~ build_script_build[2d58]::add_link_search_path) prepared; start analyze of DefId(0:14 ~ build_script_build[2d58]::add_link_search_path)
+2025-09-02T08:30:37.091Z INFO  [rustowlc::core::analyze] start re-computing borrow check with dump: true
+2025-09-02T08:30:37.091Z INFO  [rustowlc::core] start borrowck of DefId(0:15 ~ build_script_build[2d58]::get_whisper_cpp_version)
+2025-09-02T08:30:37.097Z INFO  [rustowlc::core::analyze] facts of DefId(0:15 ~ build_script_build[2d58]::get_whisper_cpp_version) prepared; start analyze of DefId(0:15 ~ build_script_build[2d58]::get_whisper_cpp_version)
+2025-09-02T08:30:37.100Z INFO  [rustowlc::core::analyze] start re-computing borrow check with dump: true
+2025-09-02T08:30:37.102Z INFO  [rustowlc::core] borrow checked: 1 / 5
+2025-09-02T08:30:37.112Z INFO  [rustowlc::core::analyze] borrow check finished
+2025-09-02T08:30:37.112Z INFO  [rustowlc::core] analyzed one item of /home/neuron/Projects/rust/rust_vad/sys/build.rs
+2025-09-02T08:30:37.112Z INFO  [rustowlc::core] borrow checked: 2 / 5
+2025-09-02T08:30:37.115Z INFO  [rustowlc::core] analyzed one item of /home/neuron/Projects/rust/rust_vad/sys/build.rs
+2025-09-02T08:30:37.115Z INFO  [rustowlc::core] borrow checked: 3 / 5
+2025-09-02T08:30:37.121Z INFO  [rustowlc::core::analyze] borrow check finished
+2025-09-02T08:30:37.141Z INFO  [rustowlc::core] analyzed one item of /home/neuron/Projects/rust/rust_vad/sys/build.rs
+2025-09-02T08:30:37.141Z INFO  [rustowlc::core] borrow checked: 4 / 5
+2025-09-02T08:30:37.180Z INFO  [rustowlc::core] analyzed one item of /home/neuron/Projects/rust/rust_vad/sys/build.rs
+2025-09-02T08:30:39.665Z INFO  [rustowlc::core::analyze] borrow check finished
+2025-09-02T08:30:39.665Z INFO  [rustowlc::core] borrow checked: 5 / 5
+2025-09-02T08:30:40.278Z INFO  [rustowlc::core] analyzed one item of /home/neuron/Projects/rust/rust_vad/sys/build.rs

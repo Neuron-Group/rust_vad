@@ -1,2 +1,3 @@
 
 model_path = "./asserts/silero_vad_16k_op15.onnx"
+asr_model_path = "./asserts/ggml-large-v3.bin"

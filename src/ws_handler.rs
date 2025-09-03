@@ -2,15 +2,16 @@ use crate::{
     base64_2_vecu8::*,
     convert_pcm::convert_bytes_to_f32_array,
     data_model::VoiceData,
-    handlers::vad::{ModelHandeler, Task},
+    handlers::{asr, vad},
     model_config::BaseConfig,
+    // play_audio::*,
     state::{self, ReturnStruct},
     vad_error::*,
 };
 use axum::{
     extract::{
         State,
-        ws::{Message, Utf8Bytes, WebSocket, WebSocketUpgrade},
+        ws::{Message, WebSocket, WebSocketUpgrade},
     },
     response::IntoResponse,
 };
@@ -81,20 +82,22 @@ impl Buf {
     }
 }
 
-struct Worker {
-    model_handler: ModelHandeler,
+struct VadWorker {
+    vad_model_handler: vad::ModelHandler,
+    // asr_model_handler: asr::ModelHandler<'a>,
     stat: state::StateMachine<f32, i16>,
     rcvr: Receiver<Array1<f32>>, // 接受输入的数组
 }
 
-impl Worker {
+impl VadWorker {
     fn new(
         State(cfg): State<BaseConfig<f32, i16>>,
         rcvr: Receiver<Array1<f32>>,
         sndr: Sender<state::ReturnStruct<f32>>, // 交给state让他提供返回的数据
     ) -> Result<Self> {
         Ok(Self {
-            model_handler: ModelHandeler::new(&cfg)?,
+            vad_model_handler: vad::ModelHandler::new(&cfg)?,
+            // asr_model_handler: asr::ModelHandler::new(&cfg)?,
             stat: state::StateMachine::new(&cfg, sndr),
             rcvr,
         })
@@ -102,10 +105,41 @@ impl Worker {
 
     async fn handler(&mut self) -> Result<()> {
         while let Some(value) = self.rcvr.recv().await {
-            let tsk = Task::build_strict(&value)?;
-            let result = self.model_handler.handle::<f32>(tsk)?;
+            let tsk = vad::Task::build_strict(&value)?;
+            let result = self.vad_model_handler.handle::<f32>(tsk)?;
             // dbg!(Ok::<f32, ModelHandlerErr>(result));
             self.stat.process(result, value).await?;
+        }
+        Ok(())
+    }
+}
+
+struct AsrWorker<'a> {
+    asr_model_handler: asr::ModelHandler<'a>,
+    rcvr: Receiver<state::ReturnStruct<f32>>,
+    sndr: Sender<String>,
+}
+
+impl<'a> AsrWorker<'a> {
+    fn new(
+        State(cfg): State<BaseConfig<f32, i16>>,
+        rcvr: Receiver<state::ReturnStruct<f32>>,
+        sndr: Sender<String>,
+    ) -> Result<Self> {
+        Ok(Self {
+            asr_model_handler: asr::ModelHandler::new(&cfg)?,
+            rcvr,
+            sndr,
+        })
+    }
+
+    async fn handler(&mut self) -> Result<()> {
+        while let Some(value) = self.rcvr.recv().await {
+            if let Some(s) = value.audio_vec {
+                let tsk = asr::Task::build(&s);
+                let result = self.asr_model_handler.handle(tsk)?;
+                self.sndr.send(result).await.unwrap();
+            }
         }
         Ok(())
     }
@@ -120,13 +154,16 @@ pub async fn audio_websocket_handler(
 
     let (mut sndr, mut rcvr) = socket.split();
 
-    let (sndr_to_worker, rcvr_by_worker) = channel(10000);
-    let (sndr_return, mut rcvr_return) = channel(10000);
+    let (sndr_input, rcvr_by_vad_worker) = channel(10000);
+    let (sndr_by_vad_worker, rcvr_by_asr_worker) = channel(10000);
+    let (sndr_by_asr_worker, mut rcvr_return) = channel(10000);
 
-    let mut wkr = Worker::new(stt, rcvr_by_worker, sndr_return)?;
-    let mut buf = Buf::new(sndr_to_worker);
+    let mut vad_worker = VadWorker::new(stt.clone(), rcvr_by_vad_worker, sndr_by_vad_worker)?;
+    let mut asr_worker = AsrWorker::new(stt, rcvr_by_asr_worker, sndr_by_asr_worker)?;
+    let mut buf = Buf::new(sndr_input);
 
-    tokio::spawn(async move { wkr.handler().await });
+    tokio::spawn(async move { vad_worker.handler().await });
+    tokio::spawn(async move { asr_worker.handler().await });
 
     tokio::spawn(async move {
         // let mut history = vec![];
@@ -186,21 +223,8 @@ pub async fn audio_websocket_handler(
 
     // rcvr_return -> sndr
     tokio::spawn(async move {
-        while let Some(ReturnStruct {
-            probs: _,
-            dbs: _,
-            sig: sig_data,
-        }) = rcvr_return.recv().await
-        {
-            let message = Message::Binary(sig_data);
-
-            // dbg!(message.clone());
-
-            if let Err(e) = sndr.send(message).await {
-                tracing::info!("socket closed, task panic. {}", e);
-
-                break;
-            }
+        while let Some(str) = rcvr_return.recv().await {
+            println!("{str}");
         }
     });
 

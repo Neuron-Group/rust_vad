@@ -6,6 +6,7 @@ use std::{fmt::Display, path::Path};
 #[derive(Deserialize, Debug)]
 pub struct Config {
     pub model_path: Box<Path>,
+    pub asr_model_path: Box<Path>,
 }
 
 impl Config {
