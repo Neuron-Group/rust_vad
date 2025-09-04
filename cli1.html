@@ -14,8 +14,8 @@
         }
         
         body {
-            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
-            color: white;
+            background: linear-gradient(135deg, #f0f8ff, #e6f7ff, #f9f9f9);
+            color: #333;
             min-height: 100vh;
             padding: 20px;
             display: flex;
@@ -24,34 +24,35 @@
         }
         
         .container {
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(255, 255, 255, 0.95);
             border-radius: 15px;
             padding: 30px;
             width: 90%;
             max-width: 800px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(173, 216, 230, 0.4);
+            border: 1px solid #e0f7fa;
         }
         
         h1 {
             text-align: center;
             margin-bottom: 25px;
             font-size: 2.2rem;
-            color: #fdbb2d;
-            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            color: #5d8aa8;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
         
         .card {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(240, 248, 255, 0.7);
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 25px;
+            border: 1px solid #d1e8f0;
         }
         
         .card-title {
             font-size: 1.3rem;
             margin-bottom: 15px;
-            color: #fdbb2d;
+            color: #5d8aa8;
             display: flex;
             align-items: center;
         }
@@ -59,6 +60,7 @@
         .card-title i {
             margin-right: 10px;
             font-size: 1.5rem;
+            color: #ff9eb5;
         }
         
         .settings {
@@ -81,22 +83,23 @@
             display: block;
             margin-bottom: 8px;
             font-weight: 500;
+            color: #5d8aa8;
         }
         
         input, select {
             width: 100%;
             padding: 12px;
             border-radius: 8px;
-            border: 1px solid #444;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
+            border: 1px solid #c5e1f9;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
             font-size: 1rem;
         }
         
         input:focus, select:focus {
             outline: none;
-            border-color: #fdbb2d;
-            box-shadow: 0 0 0 2px rgba(253, 187, 45, 0.3);
+            border-color: #ff9eb5;
+            box-shadow: 0 0 0 2px rgba(255, 158, 181, 0.3);
         }
         
         .controls {
@@ -117,6 +120,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            color: white;
         }
         
         button i {
@@ -124,39 +128,40 @@
         }
         
         #connectBtn {
-            background: #3498db;
-            color: white;
+            background: #5d8aa8;
+            box-shadow: 0 4px 8px rgba(93, 138, 168, 0.3);
         }
         
         #connectBtn:hover {
-            background: #2980b9;
+            background: #4a7694;
             transform: translateY(-2px);
         }
         
         #startStreamBtn {
-            background: #2ecc71;
-            color: white;
+            background: #ff9eb5;
+            box-shadow: 0 4px 8px rgba(255, 158, 181, 0.3);
         }
         
         #startStreamBtn:hover {
-            background: #27ae60;
+            background: #ff8da8;
             transform: translateY(-2px);
         }
         
         #stopStreamBtn {
-            background: #e74c3c;
-            color: white;
+            background: #ef7e8c;
+            box-shadow: 0 4px 8px rgba(239, 126, 140, 0.3);
         }
         
         #stopStreamBtn:hover {
-            background: #c0392b;
+            background: #e06d7c;
             transform: translateY(-2px);
         }
         
         button:disabled {
-            background: #7f8c8d;
+            background: #b0c4de;
             cursor: not-allowed;
             transform: none;
+            box-shadow: none;
         }
         
         .status {
@@ -169,50 +174,53 @@
         .status-item {
             flex: 1;
             min-width: 150px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(240, 248, 255, 0.7);
             border-radius: 8px;
             padding: 15px;
             text-align: center;
+            border: 1px solid #d1e8f0;
         }
         
         .status-label {
             font-size: 0.9rem;
-            color: #aaa;
+            color: #5d8aa8;
             margin-bottom: 5px;
         }
         
         .status-value {
             font-size: 1.3rem;
             font-weight: 600;
-            color: #fdbb2d;
+            color: #ff9eb5;
         }
         
         .audio-visualization {
             height: 150px;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.9);
             border-radius: 10px;
             margin-bottom: 25px;
             position: relative;
             overflow: hidden;
+            border: 1px solid #d1e8f0;
         }
         
         .result-container {
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(240, 248, 255, 0.7);
             border-radius: 10px;
             padding: 20px;
             margin-top: 25px;
+            border: 1px solid #d1e8f0;
         }
         
         .result-title {
             font-size: 1.3rem;
             margin-bottom: 15px;
-            color: #fdbb2d;
+            color: #5d8aa8;
             display: flex;
             align-items: center;
         }
         
         .result-content {
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.9);
             border-radius: 8px;
             padding: 15px;
             min-height: 150px;
@@ -220,6 +228,8 @@
             overflow-y: auto;
             font-family: monospace;
             white-space: pre-wrap;
+            color: #333;
+            border: 1px solid #d1e8f0;
         }
         
         .progress-container {
@@ -228,14 +238,14 @@
         
         .progress-bar {
             height: 10px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(211, 232, 240, 0.5);
             border-radius: 5px;
             overflow: hidden;
         }
         
         .progress {
             height: 100%;
-            background: #2ecc71;
+            background: #ff9eb5;
             width: 0%;
             transition: width 0.3s;
         }
@@ -245,21 +255,22 @@
             justify-content: space-between;
             margin-top: 8px;
             font-size: 0.9rem;
+            color: #5d8aa8;
         }
         
         .log-container {
             margin-top: 25px;
             max-height: 200px;
             overflow-y: auto;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid #d1e8f0;
             border-radius: 8px;
             padding: 15px;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.9);
         }
         
         .log-entry {
             padding: 8px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid #e0f7fa;
             font-size: 0.9rem;
         }
         
@@ -268,19 +279,19 @@
         }
         
         .success {
-            color: #2ecc71;
+            color: #5d8aa8;
         }
         
         .error {
-            color: #e74c3c;
+            color: #ef7e8c;
         }
         
         .info {
-            color: #3498db;
+            color: #5d8aa8;
         }
         
         .warning {
-            color: #f39c12;
+            color: #ff9eb5;
         }
         
         .connection-status {
@@ -289,7 +300,8 @@
             margin-bottom: 20px;
             padding: 15px;
             border-radius: 10px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(240, 248, 255, 0.7);
+            border: 1px solid #d1e8f0;
         }
         
         .status-indicator {
@@ -300,16 +312,16 @@
         }
         
         .status-connected {
-            background: #2ecc71;
-            box-shadow: 0 0 10px #2ecc71;
+            background: #5d8aa8;
+            box-shadow: 0 0 10px rgba(93, 138, 168, 0.5);
         }
         
         .status-disconnected {
-            background: #e74c3c;
+            background: #ef7e8c;
         }
         
         .status-connecting {
-            background: #f39c12;
+            background: #ff9eb5;
             animation: pulse 1.5s infinite;
         }
         
@@ -327,15 +339,17 @@
             align-items: center;
             border-radius: 50%;
             font-size: 36px;
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.9);
             margin: 0 auto 20px;
             transition: all 0.3s;
             position: relative;
             overflow: hidden;
+            border: 1px solid #d1e8f0;
+            color: #ff9eb5;
         }
         
         .mic-icon.active {
-            background: rgba(231, 76, 60, 0.3);
+            background: rgba(255, 158, 181, 0.2);
             animation: pulse 1s infinite;
         }
         
@@ -344,7 +358,7 @@
             position: absolute;
             width: 100%;
             height: 100%;
-            border: 2px solid rgba(231, 76, 60, 0.5);
+            border: 2px solid rgba(255, 158, 181, 0.5);
             border-radius: 50%;
             animation: ripple 1.5s infinite;
         }
@@ -366,7 +380,7 @@
         
         .vumeter-bar {
             width: 100%;
-            background: linear-gradient(to top, #2ecc71, #f39c12, #e74c3c);
+            background: linear-gradient(to top, #a8d8ea, #ff9eb5, #ef7e8c);
             transition: height 0.05s;
         }
         
@@ -376,7 +390,7 @@
             right: 10px;
             font-size: 1.2rem;
             font-weight: 600;
-            color: #fdbb2d;
+            color: #5d8aa8;
         }
         
         .signal-meter {
@@ -392,14 +406,14 @@
         
         .signal-bar {
             flex: 1;
-            background: #3498db;
+            background: #a8d8ea;
             border-radius: 3px 3px 0 0;
             height: 0%;
             transition: height 0.05s;
         }
         
         .json-preview {
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.9);
             border-radius: 8px;
             padding: 15px;
             margin-top: 15px;
@@ -407,6 +421,8 @@
             overflow-y: auto;
             font-family: monospace;
             font-size: 0.85rem;
+            color: #333;
+            border: 1px solid #d1e8f0;
         }
         
         .user-info {
@@ -581,10 +597,10 @@
                     const height = (index / barCount) * 100 + 10;
                     bar.style.height = `${height}%`;
                     bar.style.background = index > barCount * 0.7 ? 
-                        'linear-gradient(to top, #f39c12, #e74c3c)' : 
+                        'linear-gradient(to top, #ff9eb5, #ef7e8c)' : 
                         index > barCount * 0.4 ? 
-                        'linear-gradient(to top, #2ecc71, #f39c12)' : 
-                        'linear-gradient(to top, #3498db, #2ecc71)';
+                        'linear-gradient(to top, #a8d8ea, #ff9eb5)' : 
+                        'linear-gradient(to top, #5d8aa8, #a8d8ea)';
                 } else {
                     bar.style.height = '0%';
                 }
@@ -917,212 +933,212 @@
                         } else if (event.data instanceof Blob) {
                             // Blob消息
                             const reader = new FileReader();
-                            reader.onload = () => {
-                                serverResponse.textContent = reader.result;
-                                addLog(`收到服务器响应: ${reader.result}`, 'info');
-                            };
-                            reader.readAsText(event.data);
-                            return;
-                        } else {
-                            response = JSON.stringify(event.data);
-                        }
-                        
-                        serverResponse.textContent = response;
-                        addLog(`收到服务器响应: ${response}`, 'info');
-                    } catch (e) {
-                        addLog(`处理服务器响应时出错: ${e.message}`, 'error');
-                    }
-                };
-                
-            } catch (error) {
-                updateConnectionStatus('error', '连接失败');
-                addLog(`连接失败: ${error.message}`, 'error');
-            }
-        }
-        
-        // 断开连接
-        function disconnect() {
-            if (websocket && websocket.readyState === WebSocket.OPEN) {
-                websocket.close(1000, '用户断开连接');
-            }
-        }
-        
-        // 切换流传输状态
-        function toggleStreaming() {
-            if (isStreaming) {
-                stopStreaming();
-            } else {
-                startStreaming();
-            }
-        }
-        
-        // 开始流传输
-        function startStreaming() {
-            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
-                addLog('错误：未连接到服务器', 'error');
-                return;
-            }
-            
-            if (!isMicActive) {
-                addLog('错误：麦克风未激活', 'error');
-                return;
-            }
-            
-            // 更新状态
-            isStreaming = true;
-            startStreamBtn.disabled = true;
-            stopStreamBtn.disabled = false;
-            streamStatus.textContent = '传输中...';
-            streamStatus.style.color = '#2ecc71';
-            
-            // 启动音频处理
-            startAudioProcessing();
-            
-            // 启动计时器
-            startTimer();
-            
-            addLog('开始实时音频流传输', 'success');
-        }
-        
-        // 停止流传输
-        function stopStreaming() {
-            if (isStreaming) {
-                isStreaming = false;
-                
-                // 清理处理器
-                if (processor) {
-                    processor.disconnect();
-                    processor = null;
-                }
-                
-                // 发送结束消息
-                if (websocket && websocket.readyState === WebSocket.OPEN) {
-                    const endMessage = {
-                        status: "completed",
-                        device_id: deviceIdInput.value || "unknown",
-                        user_id: userIdInput.value || "anonymous",
-                        id: sessionUUID,
-                        image: "",
-                        audio: "",
-                        start_time: "0",
-                        end_time: accumulatedTime.toString(),
-                        sample_rate: "16000",
-                        bit_depth: "16",
-                        format: "PCM"
+                    reader.onload = () => {
+                        serverResponse.textContent = reader.result;
+                        addLog(`收到服务器响应: ${reader.result}`, 'info');
                     };
-                    websocket.send(JSON.stringify(endMessage));
-                    addLog('发送结束消息', 'info');
+                    reader.readAsText(event.data);
+                    return;
+                } else {
+                    response = JSON.stringify(event.data);
                 }
                 
-                // 更新UI
-                startStreamBtn.disabled = false;
-                stopStreamBtn.disabled = true;
-                streamStatus.textContent = '已停止';
-                streamStatus.style.color = '#e74c3c';
-                
-                // 停止计时器
-                stopTimer();
-                
-                addLog('音频流传输已停止', 'info');
+                serverResponse.textContent = response;
+                addLog(`收到服务器响应: ${response}`, 'info');
+            } catch (e) {
+                addLog(`处理服务器响应时出错: ${e.message}`, 'error');
             }
+        };
+        
+    } catch (error) {
+        updateConnectionStatus('error', '连接失败');
+        addLog(`连接失败: ${error.message}`, 'error');
+    }
+}
+
+// 断开连接
+function disconnect() {
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+        websocket.close(1000, '用户断开连接');
+    }
+}
+
+// 切换流传输状态
+function toggleStreaming() {
+    if (isStreaming) {
+        stopStreaming();
+    } else {
+        startStreaming();
+    }
+}
+
+// 开始流传输
+function startStreaming() {
+    if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+        addLog('错误：未连接到服务器', 'error');
+        return;
+    }
+    
+    if (!isMicActive) {
+        addLog('错误：麦克风未激活', 'error');
+        return;
+    }
+    
+    // 更新状态
+    isStreaming = true;
+    startStreamBtn.disabled = true;
+    stopStreamBtn.disabled = false;
+    streamStatus.textContent = '传输中...';
+    streamStatus.style.color = '#5d8aa8';
+    
+    // 启动音频处理
+    startAudioProcessing();
+    
+    // 启动计时器
+    startTimer();
+    
+    addLog('开始实时音频流传输', 'success');
+}
+
+// 停止流传输
+function stopStreaming() {
+    if (isStreaming) {
+        isStreaming = false;
+        
+        // 清理处理器
+        if (processor) {
+            processor.disconnect();
+            processor = null;
         }
         
-        // 格式化文件大小
-        function formatFileSize(bytes) {
-            if (bytes < 1024) return bytes + ' B';
-            else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-            else return (bytes / 1048576).toFixed(1) + ' MB';
+        // 发送结束消息
+        if (websocket && websocket.readyState === WebSocket.OPEN) {
+            const endMessage = {
+                status: "completed",
+                device_id: deviceIdInput.value || "unknown",
+                user_id: userIdInput.value || "anonymous",
+                id: sessionUUID,
+                image: "",
+                audio: "",
+                start_time: "0",
+                end_time: accumulatedTime.toString(),
+                sample_rate: "16000",
+                bit_depth: "16",
+                format: "PCM"
+            };
+            websocket.send(JSON.stringify(endMessage));
+            addLog('发送结束消息', 'info');
         }
         
-        // 添加日志
-        function addLog(message, type = 'info') {
-            const logEntry = document.createElement('div');
-            logEntry.className = `log-entry ${type}`;
-            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-            logContainer.appendChild(logEntry);
-            logContainer.scrollTop = logContainer.scrollHeight;
-        }
+        // 更新UI
+        startStreamBtn.disabled = false;
+        stopStreamBtn.disabled = true;
+        streamStatus.textContent = '已停止';
+        streamStatus.style.color = '#ef7e8c';
         
-        // 更新连接状态
-        function updateConnectionStatus(status, text) {
-            connectionStatus.textContent = text;
-            connectionStatusValue.textContent = text;
+        // 停止计时器
+        stopTimer();
+        
+        addLog('音频流传输已停止', 'info');
+    }
+}
+
+// 格式化文件大小
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    else return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+// 添加日志
+function addLog(message, type = 'info') {
+    const logEntry = document.createElement('div');
+    logEntry.className = `log-entry ${type}`;
+    logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+    logContainer.appendChild(logEntry);
+    logContainer.scrollTop = logContainer.scrollHeight;
+}
+
+// 更新连接状态
+function updateConnectionStatus(status, text) {
+    connectionStatus.textContent = text;
+    connectionStatusValue.textContent = text;
+    
+    // 重置所有状态类
+    statusIndicator.className = 'status-indicator';
+    
+    // 添加当前状态类
+    switch (status) {
+        case 'connected':
+            statusIndicator.classList.add('status-connected');
+            connectBtn.textContent = '断开连接';
+            connectBtn.style.backgroundColor = '#ef7e8c';
+            break;
+        case 'disconnected':
+            statusIndicator.classList.add('status-disconnected');
+            connectBtn.textContent = '连接服务器';
+            connectBtn.style.backgroundColor = '#5d8aa8';
+            break;
+        case 'connecting':
+            statusIndicator.classList.add('status-connecting');
+            connectBtn.disabled = true;
+            break;
+        case 'error':
+            statusIndicator.classList.add('status-disconnected');
+            connectBtn.textContent = '连接服务器';
+            connectBtn.style.backgroundColor = '#5d8aa8';
+            break;
+    }
+}
+
+// 音量计类
+class SoundMeter {
+    constructor(context) {
+        this.context = context;
+        this.instant = 0.0;
+        this.slow = 0.0;
+        this.script = this.context.createScriptProcessor(2048, 1, 1);
+        const that = this;
+        
+        this.script.onaudioprocess = function(event) {
+            const input = event.inputBuffer.getChannelData(0);
+            let sum = 0.0;
             
-            // 重置所有状态类
-            statusIndicator.className = 'status-indicator';
+            for (let i = 0; i < input.length; i++) {
+                sum += input[i] * input[i];
+            }
             
-            // 添加当前状态类
-            switch (status) {
-                case 'connected':
-                    statusIndicator.classList.add('status-connected');
-                    connectBtn.textContent = '断开连接';
-                    connectBtn.style.backgroundColor = '#e74c3c';
-                    break;
-                case 'disconnected':
-                    statusIndicator.classList.add('status-disconnected');
-                    connectBtn.textContent = '连接服务器';
-                    connectBtn.style.backgroundColor = '#3498db';
-                    break;
-                case 'connecting':
-                    statusIndicator.classList.add('status-connecting');
-                    connectBtn.disabled = true;
-                    break;
-                case 'error':
-                    statusIndicator.classList.add('status-disconnected');
-                    connectBtn.textContent = '连接服务器';
-                    connectBtn.style.backgroundColor = '#3498db';
-                    break;
+            that.instant = Math.sqrt(sum / input.length);
+            that.slow = 0.95 * that.slow + 0.05 * that.instant;
+        };
+    }
+    
+    connectToSource(stream, callback) {
+        try {
+            this.mic = this.context.createMediaStreamSource(stream);
+            this.mic.connect(this.script);
+            this.script.connect(this.context.destination);
+            
+            if (typeof callback === 'function') {
+                callback(null);
+            }
+        } catch (e) {
+            if (typeof callback === 'function') {
+                callback(e);
             }
         }
-        
-        // 音量计类
-        class SoundMeter {
-            constructor(context) {
-                this.context = context;
-                this.instant = 0.0;
-                this.slow = 0.0;
-                this.script = this.context.createScriptProcessor(2048, 1, 1);
-                const that = this;
-                
-                this.script.onaudioprocess = function(event) {
-                    const input = event.inputBuffer.getChannelData(0);
-                    let sum = 0.0;
-                    
-                    for (let i = 0; i < input.length; i++) {
-                        sum += input[i] * input[i];
-                    }
-                    
-                    that.instant = Math.sqrt(sum / input.length);
-                    that.slow = 0.95 * that.slow + 0.05 * that.instant;
-                };
-            }
-            
-            connectToSource(stream, callback) {
-                try {
-                    this.mic = this.context.createMediaStreamSource(stream);
-                    this.mic.connect(this.script);
-                    this.script.connect(this.context.destination);
-                    
-                    if (typeof callback === 'function') {
-                        callback(null);
-                    }
-                } catch (e) {
-                    if (typeof callback === 'function') {
-                        callback(e);
-                    }
-                }
-            }
-            
-            stop() {
-                if (this.mic) {
-                    this.mic.disconnect();
-                }
-                this.script.disconnect();
-            }
+    }
+    
+    stop() {
+        if (this.mic) {
+            this.mic.disconnect();
         }
-        
-        // 初始化应用
-        window.addEventListener('DOMContentLoaded', init);
-    </script>
+        this.script.disconnect();
+    }
+}
+
+// 初始化应用
+window.addEventListener('DOMContentLoaded', init);
+</script>
 </body>
 </html>

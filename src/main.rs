@@ -24,9 +24,11 @@ async fn main() {
     let state_cfg = model_config::BaseConfig::<f32, i16>::new(cfgs);
     let app = Router::new()
         .route("/ws/audio", get(ws_handler::websocket_upgrade))
-        .with_state(state_cfg);
+        .with_state(state_cfg.clone());
 
-    let listener = TcpListener::bind("0.0.0.0:8765").await.unwrap();
+    let listener = TcpListener::bind(state_cfg.clone().input_socket)
+        .await
+        .unwrap();
 
     axum::serve::serve(listener, app).await.unwrap();
 }

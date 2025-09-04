@@ -1,5 +1,6 @@
 use crate::config::Config;
 use crate::type_trait::*;
+use std::net::SocketAddr;
 
 /// 基础模型配置
 
@@ -24,6 +25,9 @@ pub struct BaseConfig<Ft: FloatTrait + From<It>, It: IntTrait> {
     pub model_path: Box<std::path::Path>,
 
     pub asr_model_path: Box<std::path::Path>,
+    // 网络接口
+    pub input_socket: SocketAddr,
+    pub output_socket: SocketAddr,
 }
 
 impl<Ft: FloatTrait + From<It>, It: IntTrait> BaseConfig<Ft, It> {
@@ -39,6 +43,9 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> BaseConfig<Ft, It> {
             smoothing_window: 2,
             model_path: cfg.model_path.into_path_buf().into_boxed_path(),
             asr_model_path: cfg.asr_model_path.into_path_buf().into_boxed_path(),
+
+            input_socket: "0.0.0.0:8765".parse().unwrap(),
+            output_socket: "0.0.0.0:8766".parse().unwrap(),
         }
     }
 }

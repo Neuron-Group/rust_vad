@@ -13,6 +13,7 @@ RUN apt-get install git -y
 RUN apt-get install libclang-dev -y
 RUN apt-get install pkg-config -y
 RUN apt-get install cmake -y
+RUN apt-get install libssl-dev -y
 
 # 仅安装 nightly Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \

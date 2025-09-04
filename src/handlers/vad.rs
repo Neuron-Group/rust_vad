@@ -1,9 +1,8 @@
 use crate::{
+    data_model::*,
     model_config,
     type_trait::*,
-    vad_error::{
-        self, ConfigErr, Result, make_config_err, make_parse_err_with_msg, make_type_convert_err,
-    },
+    vad_error::{Result, make_config_err, make_parse_err_with_msg, make_type_convert_err},
 };
 use ndarray::Array1;
 // use num_traits::{FromPrimitive, ToPrimitive, Zero, float, int};
@@ -11,20 +10,28 @@ use ndarray::Array1;
 
 pub mod model_handler;
 use model_handler::*;
+use num_traits::ToPrimitive;
 
 pub struct Task(Array1<f32>);
 
 impl Task {
-    pub fn build_strict<Ft: FloatTrait>(data: &Array1<Ft>) -> Result<Self> {
-        if 512 != data.len() {
+    pub fn build_strict(data: &VoiceData) -> Result<Self> {
+        if data.audio.is_none() {
+            return Err(make_parse_err_with_msg("blank body OwO".into()));
+        }
+        if 512 != data.audio.as_ref().unwrap().len() {
             return Err(make_parse_err_with_msg(
                 "data not match to 512 samples >_<".to_string(),
             ));
         }
 
-        Ok(Self(
-            data.clone().mapv(|value| value.to_f32().unwrap_or(0.0)),
-        ))
+        Ok(Self(Array1::from_iter(
+            data.audio
+                .as_ref()
+                .unwrap()
+                .iter()
+                .map(|value| value.to_f32().unwrap_or(0.0)),
+        )))
     }
 
     pub fn build<Ft: FloatTrait>(data: &Array1<Ft>) -> Self {
