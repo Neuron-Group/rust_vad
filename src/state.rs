@@ -27,7 +27,7 @@ pub struct StateMachine<Ft: FloatTrait + From<It>, It: IntTrait> {
 
     miss_count: usize,
     hit_count: usize,
-    // pre_sample_cnt: usize,
+
     prob_window: FixedLengthQueue<Ft>,
     db_window: FixedLengthQueue<Ft>,
 
@@ -237,13 +237,13 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
                     .map_err(|e| make_parse_err_with_msg(e.to_string()))?;
                 println!("resume!");
                 if self.prob_buf.len() > MIN_CLIPS.into() {
-                    let recent_chunks: Vec<&Bytes> = self
-                        .pre_buf
-                        .iter()
-                        .rev()
-                        .take(self.cfg.required_hits)
-                        .rev()
-                        .collect();
+                    let len_pre = std::cmp::min(
+                        self.pre_buf_vec.as_ref().unwrap().len(),
+                        self.cfg.pre_sample_cnt + self.cfg.required_hits,
+                    );
+
+                    let recent_chunks: Vec<&Bytes> =
+                        self.pre_buf.iter().rev().take(len_pre).rev().collect();
 
                     let mut out_bytes = BytesMut::new();
 
@@ -259,7 +259,7 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
                         .unwrap()
                         .into_iter()
                         .rev()
-                        .take(self.cfg.required_hits)
+                        .take(len_pre)
                         .rev()
                         .flatten()
                         .collect();
@@ -271,7 +271,6 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
                         .collect();
 
                     self.vec_buf = Some(Vec::new());
-
                     /*
                                         let mut data: Vec<f32> = Vec::new();
                                         data = out_vec

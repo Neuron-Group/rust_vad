@@ -16,6 +16,8 @@ pub struct BaseConfig<Ft: FloatTrait + From<It>, It: IntTrait> {
     /// end_delay
     pub required_misses: usize,
 
+    pub pre_sample_cnt: usize,
+
     /// 平滑窗口
     pub smoothing_window: usize,
 
@@ -33,6 +35,7 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> BaseConfig<Ft, It> {
             db_threshold: <Ft as num_traits::NumCast>::from(30.0).unwrap(),
             required_hits: 3,
             required_misses: 20,
+            pre_sample_cnt: 15,
             smoothing_window: 2,
             model_path: cfg.model_path.into_path_buf().into_boxed_path(),
             asr_model_path: cfg.asr_model_path.into_path_buf().into_boxed_path(),
