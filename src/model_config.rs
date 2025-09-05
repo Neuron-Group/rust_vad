@@ -45,7 +45,7 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> BaseConfig<Ft, It> {
             asr_model_path: cfg.asr_model_path.into_path_buf().into_boxed_path(),
 
             input_socket: "0.0.0.0:8765".parse().unwrap(),
-            output_socket: "0.0.0.0:8766".parse().unwrap(),
+            output_socket: "192.168.31.152:8000".parse().unwrap(),
         }
     }
 }

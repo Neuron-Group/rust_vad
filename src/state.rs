@@ -2,7 +2,7 @@ use crate::{
     data_model::*, fixed_deque::FixedLengthQueue, model_config, play_audio::*, type_trait::*,
     vad_error::*,
 };
-use bytes::Bytes;
+
 use ndarray::Array1;
 use num_traits::NumCast;
 use tokio::sync::mpsc::Sender;
@@ -37,28 +37,6 @@ pub struct StateMachine<Ft: FloatTrait + From<It>, It: IntTrait> {
 
     output_data: Option<SlicedVoiceData>,
     output_channel: Sender<SlicedVoiceData>,
-}
-
-pub struct ReturnStruct<Ft: FloatTrait> {
-    pub probs: Vec<Ft>,
-    pub dbs: Vec<Ft>,
-    pub sig: Bytes,
-    pub audio_vec: Option<Vec<Ft>>,
-}
-
-impl<Ft: FloatTrait> ReturnStruct<Ft> {
-    pub fn new(probs: Vec<Ft>, dbs: Vec<Ft>, sig: String) -> Self {
-        Self {
-            probs,
-            dbs,
-            sig: Bytes::from(sig),
-            audio_vec: None,
-        }
-    }
-
-    pub fn get_sig(&self) -> Result<String> {
-        Ok(String::from_utf8(self.sig.to_vec())?)
-    }
 }
 
 impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
@@ -218,8 +196,6 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
         smthd_db: Ft,
         time_stamp: String,
     ) -> Result<()> {
-        // dbg!("connected>_<");
-
         self.update(chnk_vec, smthd_prb, smthd_db, time_stamp);
 
         if smthd_prb >= self.cfg.prob_threshold && smthd_db >= self.cfg.db_threshold {
@@ -236,17 +212,6 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
             if self.miss_count >= self.cfg.required_misses {
                 self.stat_mchne = SpeakingStates::Idle;
                 self.miss_count = 0;
-
-                /*
-                                self.output_channel
-                                    .send(ReturnStruct::new(
-                                        vec![],
-                                        vec![],
-                                        String::from("<|RESUME|>"),
-                                    ))
-                                    .await
-                                    .map_err(|e| make_parse_err_with_msg(e.to_string()))?;
-                */
 
                 println!("resume!");
                 if self.prob_buf.len() > MIN_CLIPS.into() && !self.prob_buf.is_empty() {
@@ -366,17 +331,21 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
 
         // dbg!(Result::<f32>::Ok(smthd_prb.to_f32().unwrap()));
 
+        let time_stamp = input_data.time_stamp;
+
+        self.output_data.as_mut().unwrap().img = input_data.img;
+
         match self.stat_mchne {
             SpeakingStates::Idle => {
-                self.update_on_idle(ft_chunk_array, smthd_prb, smthd_db, input_data.time_stamp)
+                self.update_on_idle(ft_chunk_array, smthd_prb, smthd_db, time_stamp)
                     .await?
             }
             SpeakingStates::Active => {
-                self.update_on_active(ft_chunk_array, smthd_prb, smthd_db, input_data.time_stamp)
+                self.update_on_active(ft_chunk_array, smthd_prb, smthd_db, time_stamp)
                     .await?
             }
             SpeakingStates::InActive => {
-                self.update_on_inactive(ft_chunk_array, smthd_prb, smthd_db, input_data.time_stamp)
+                self.update_on_inactive(ft_chunk_array, smthd_prb, smthd_db, time_stamp)
                     .await?
             }
         };

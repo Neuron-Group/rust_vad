@@ -5,8 +5,6 @@ use crate::{
     vad_error::{Result, make_config_err, make_parse_err_with_msg, make_type_convert_err},
 };
 use ndarray::Array1;
-// use num_traits::{FromPrimitive, ToPrimitive, Zero, float, int};
-// use silero_vad_rs::SileroVAD;
 
 pub mod model_handler;
 use model_handler::*;
@@ -85,7 +83,7 @@ impl ModelHandler {
 
         // dbg!(1. - max_value);
         //
-        // dbg!(Ok::<f32, vad_error::ConfigErr>(max_value));
+        dbg!(Ok::<f32, crate::vad_error::ConfigErr>(max_value));
 
         Ft::from_f32(max_value).ok_or_else(make_type_convert_err)
     }
