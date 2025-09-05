@@ -32,8 +32,8 @@ pub struct StateMachine<Ft: FloatTrait + From<It>, It: IntTrait> {
     prob_window: FixedLengthQueue<Ft>,
     db_window: FixedLengthQueue<Ft>,
 
-    pre_buf_vec: Option<Vec<Vec<Ft>>>,
-    pre_time_buf: Option<Vec<String>>,
+    pre_buf_vec: Option<FixedLengthQueue<Vec<Ft>>>,
+    pre_time_buf: Option<FixedLengthQueue<String>>,
 
     output_data: Option<SlicedVoiceData>,
     output_channel: Sender<SlicedVoiceData>,
@@ -56,8 +56,12 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
             prob_window: FixedLengthQueue::new(cfg.smoothing_window),
             db_window: FixedLengthQueue::new(cfg.smoothing_window),
 
-            pre_buf_vec: Some(Vec::new()),
-            pre_time_buf: Some(Vec::new()),
+            pre_buf_vec: Some(FixedLengthQueue::new(
+                cfg.required_hits + cfg.pre_sample_cnt,
+            )),
+            pre_time_buf: Some(FixedLengthQueue::new(
+                cfg.required_hits + cfg.pre_sample_cnt,
+            )),
 
             cfg: cfg.clone(),
 
@@ -134,12 +138,12 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
         smthd_db: Ft,
         time_stamp: String,
     ) -> Result<()> {
-        if let Some(ls) = &mut self.pre_buf_vec {
-            ls.push(chnk_vec)
+        if let Some(ls) = self.pre_buf_vec.take() {
+            self.pre_buf_vec = Some(ls.push_front(chnk_vec));
         }
 
-        if let Some(ls) = &mut self.pre_time_buf {
-            ls.push(time_stamp)
+        if let Some(ls) = self.pre_time_buf.take() {
+            self.pre_time_buf = Some(ls.push_front(time_stamp));
         }
 
         if smthd_prb >= self.cfg.prob_threshold && smthd_db >= self.cfg.db_threshold {
@@ -215,26 +219,19 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
 
                 println!("resume!");
                 if self.prob_buf.len() > MIN_CLIPS.into() && !self.prob_buf.is_empty() {
-                    let len_pre = std::cmp::min(
-                        self.pre_buf_vec.as_ref().unwrap().len(),
-                        self.cfg.pre_sample_cnt + self.cfg.required_hits,
-                    );
+                    let out_vec: Vec<Ft> = self
+                        .pre_buf_vec
+                        .take()
+                        .unwrap()
+                        .queue
+                        .into_iter()
+                        .rev()
+                        .flatten()
+                        .collect();
 
-                    let out_vec = match len_pre {
-                        0 => Vec::new(),
-                        _ => self
-                            .pre_buf_vec
-                            .take()
-                            .unwrap()
-                            .into_iter()
-                            .rev()
-                            .take(len_pre)
-                            .rev()
-                            .flatten()
-                            .collect(),
-                    };
-
-                    self.pre_buf_vec = Some(Vec::new());
+                    self.pre_buf_vec = Some(FixedLengthQueue::new(
+                        self.cfg.required_hits + self.cfg.pre_sample_cnt,
+                    ));
 
                     let out_vec = out_vec
                         .into_iter()
@@ -244,22 +241,13 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
 
                     self.vec_buf = Some(Vec::new());
 
-                    let len_pre_time_buf = self.pre_time_buf.as_ref().unwrap().len();
-                    let start_time;
-                    let end_time;
-                    match len_pre_time_buf {
-                        0 => {
-                            end_time = self.time_buf.take().unwrap().pop().unwrap();
-                            start_time = end_time.clone();
-                        }
-                        _ => {
-                            start_time = self.pre_time_buf.take().unwrap()
-                                [len_pre_time_buf - len_pre]
-                                .clone();
-                            end_time = self.time_buf.take().unwrap().pop().unwrap();
-                        }
-                    }
-                    self.pre_time_buf = Some(Vec::new());
+                    // let len_pre_time_buf = self.pre_time_buf.as_ref().unwrap().len();
+                    let start_time = self.pre_time_buf.take().unwrap().queue.pop_back().unwrap();
+                    let end_time = self.time_buf.take().unwrap().pop().unwrap();
+
+                    self.pre_time_buf = Some(FixedLengthQueue::new(
+                        self.cfg.required_hits + self.cfg.pre_sample_cnt,
+                    ));
                     self.time_buf = Some(Vec::new());
 
                     /*
@@ -281,7 +269,9 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
                     }
                 }
 
-                self.pre_time_buf = Some(Vec::new());
+                self.pre_time_buf = Some(FixedLengthQueue::new(
+                    self.cfg.required_hits + self.cfg.pre_sample_cnt,
+                ));
             }
         }
 
