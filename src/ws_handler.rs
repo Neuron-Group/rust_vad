@@ -231,12 +231,17 @@ pub async fn audio_websocket_handler(
             if let Err(e) = resp {
                 error!("{e}");
             }
-            /*
-                        match sndr.send("success!".to_string().into()).await {
-                            Ok(_) => continue,
-                            Err(_) => continue,
-                        };
-            */
+
+            match resp {
+                Ok(r) => {
+                    info!("{r:?}");
+                    println!("{|INFO| r:?}");
+                }
+                Err(e) => {
+                    error!("{e:?}");
+                    println!("|ERROR| {e:?}");
+                }
+            }
         }
     });
 
@@ -247,6 +252,7 @@ pub async fn audio_websocket_handler(
                 VadReturnState::Pause => "<|PAUSE|>".to_string(),
                 VadReturnState::Resume => "<|RESUME|>".to_string(),
             };
+            println!("|INFO| {}", return_string.clone());
             match sndr.send(Message::Text(return_string.into())).await {
                 Ok(_) => continue,
                 Err(_) => continue,

@@ -173,7 +173,7 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
                     .await
                     .map_err(|e| make_parse_err_with_msg(e.to_string()))?;
 
-                println!("pause!");
+                // println!("pause!");
             }
         } else {
             self.hit_count = 0;
@@ -229,7 +229,7 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
                 self.stat_mchne = SpeakingStates::Idle;
                 self.miss_count = 0;
 
-                println!("resume!");
+                // println!("resume!");
                 if self.prob_buf.len() > MIN_CLIPS.into() && !self.prob_buf.is_empty() {
                     let out_vec: Vec<Ft> = self
                         .pre_buf_vec
