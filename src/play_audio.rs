@@ -1,5 +1,5 @@
 use rodio::buffer::SamplesBuffer;
-use rodio::{OutputStream, Sink, source::Source};
+use rodio::{OutputStream, Sink};
 
 pub fn play_audio(data: &[f32], sample_rate: u32) {
     // 1. 获取默认输出流（新版 API）

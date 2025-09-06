@@ -77,14 +77,14 @@ impl SileroVAD {
 
         // Load the model with optimizations and GPU support
         let session = if model_path.exists() {
-            info!("Loading model from local file: {:?}", model_path);
+            info!("Loading model from local file: {model_path:?}");
             Session::builder()?
                 .with_optimization_level(GraphOptimizationLevel::Level3)?
                 .with_execution_providers([tensorrt_provider, cuda_provider])?
                 .with_intra_threads(1)?
                 .commit_from_file(model_path)?
         } else {
-            info!("Model not found locally. Downloading from {}", MODEL_URL);
+            info!("Model not found locally. Downloading from {MODEL_URL}");
             Session::builder()?
                 .with_optimization_level(GraphOptimizationLevel::Level3)?
                 .with_execution_providers([tensorrt_provider, cuda_provider])?
@@ -158,7 +158,7 @@ impl SileroVAD {
     /// * The sampling rate is not supported
     /// * Model inference fails
     pub fn process_chunk(&mut self, x: &ArrayView1<f32>, sr: u32) -> Result<Array1<f32>> {
-        let batch_size = 1;
+        // let batch_size = 1;
 
         self.validate_input(x, sr)?;
 
@@ -189,7 +189,7 @@ impl SileroVAD {
         let input_shape = input.shape().to_vec();
         let input_data = input.into_raw_vec();
 
-        debug!("Processing input tensor of shape {:?}", input_shape);
+        debug!("Processing input tensor of shape {input_shape:?}");
 
         // Create input tensor with just the 'input' name
         let inputs = vec![

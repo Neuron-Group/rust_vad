@@ -8,12 +8,11 @@ use ndarray::Array1;
 
 pub mod model_handler;
 use model_handler::*;
-use num_traits::ToPrimitive;
 
 pub struct Task(Array1<f32>);
 
 impl Task {
-    pub fn build_strict(data: &VoiceData) -> Result<Self> {
+    pub fn build_strict<Ft: FloatTrait>(data: &VoiceData<Ft>) -> Result<Self> {
         if data.audio.is_none() {
             return Err(make_parse_err_with_msg("blank body OwO".into()));
         }
@@ -83,7 +82,7 @@ impl ModelHandler {
 
         // dbg!(1. - max_value);
         //
-        dbg!(Ok::<f32, crate::vad_error::ConfigErr>(max_value));
+        // dbg!(Ok::<f32, crate::vad_error::ConfigErr>(max_value));
 
         Ft::from_f32(max_value).ok_or_else(make_type_convert_err)
     }

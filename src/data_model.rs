@@ -1,6 +1,12 @@
-use crate::{base64_2_vecu8::*, convert_pcm::*, vad_error::*};
-use ndarray::Array1;
+use crate::{base64_2_vecu8::*, convert_pcm::*, type_trait::*, vad_error::*};
+use num_traits::NumCast;
 use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum VadReturnState {
+    Pause,
+    Resume,
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NetworkData {
@@ -20,24 +26,24 @@ pub struct NetworkData {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct VoiceData {
+pub struct VoiceData<Ft: FloatTrait> {
     pub status: String,
     pub device_id: String,
     pub user_id: String,
     pub id: String,
     pub img: String,
-    pub audio: Option<Vec<f32>>,
+    pub audio: Option<Vec<Ft>>,
     pub time_stamp: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SlicedVoiceData {
+pub struct SlicedVoiceData<Ft: FloatTrait> {
     pub status: String,
     pub device_id: String,
     pub user_id: String,
     pub id: String,
     pub img: String,
-    pub audio: Option<Vec<f32>>,
+    pub audio: Option<Vec<Ft>>,
     pub start_time: String,
     pub end_time: String,
 }
@@ -55,8 +61,8 @@ pub struct TextData {
 }
 
 impl NetworkData {
-    pub fn init_to_voice_data(&self) -> Result<VoiceData> {
-        Ok(VoiceData {
+    pub fn init_to_voice_data<Ft: FloatTrait>(&self) -> Result<VoiceData<Ft>> {
+        Ok(VoiceData::<Ft> {
             status: match self.status.clone() {
                 serde_json::Value::String(s) => s,
                 _ => return Err(make_parse_err_with_msg("cannot parse status TAT".into())),
@@ -96,8 +102,8 @@ impl NetworkData {
     }
 }
 
-impl VoiceData {
-    pub fn init_to_sliced_voice_data_with_ref(&self) -> SlicedVoiceData {
+impl<Ft: FloatTrait> VoiceData<Ft> {
+    pub fn init_to_sliced_voice_data_with_ref(&self) -> SlicedVoiceData<Ft> {
         SlicedVoiceData {
             status: self.status.clone(),
             device_id: self.device_id.clone(),
@@ -111,7 +117,7 @@ impl VoiceData {
     }
 }
 
-impl SlicedVoiceData {
+impl<Ft: FloatTrait> SlicedVoiceData<Ft> {
     pub fn init_to_text_data(self) -> TextData {
         TextData {
             status: self.status,
@@ -126,7 +132,7 @@ impl SlicedVoiceData {
     }
 }
 
-impl TryFrom<NetworkData> for VoiceData {
+impl<Ft: FloatTrait> TryFrom<NetworkData> for VoiceData<Ft> {
     type Error = Box<dyn std::error::Error + Send + Sync>;
     fn try_from(value: NetworkData) -> std::result::Result<Self, Self::Error> {
         Ok(VoiceData {
@@ -156,9 +162,12 @@ impl TryFrom<NetworkData> for VoiceData {
             },
 
             audio: match value.audio {
-                serde_json::Value::String(s) => {
-                    Some(convert_bytes_to_f32_array(&base64_2_vecu8(s)?, 16))
-                }
+                serde_json::Value::String(s) => Some(
+                    convert_bytes_to_f32_array(&base64_2_vecu8(s)?, 16)
+                        .into_iter()
+                        .map(|value| <Ft as NumCast>::from(value).unwrap_or(Ft::zero()))
+                        .collect::<Vec<Ft>>(),
+                ),
                 _ => return Err(make_parse_err_with_msg("parse audio failed TAT".into())),
             },
 

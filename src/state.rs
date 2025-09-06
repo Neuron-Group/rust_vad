@@ -1,10 +1,9 @@
 use crate::{
-    data_model::*, fixed_deque::FixedLengthQueue, model_config, play_audio::*, type_trait::*,
-    vad_error::*,
+    data_model::*, fixed_deque::FixedLengthQueue, model_config, type_trait::*, vad_error::*,
 };
 
 use ndarray::Array1;
-use num_traits::NumCast;
+
 use tokio::sync::mpsc::Sender;
 
 const MIN_CLIPS: u8 = 3;
@@ -35,12 +34,18 @@ pub struct StateMachine<Ft: FloatTrait + From<It>, It: IntTrait> {
     pre_buf_vec: Option<FixedLengthQueue<Vec<Ft>>>,
     pre_time_buf: Option<FixedLengthQueue<String>>,
 
-    output_data: Option<SlicedVoiceData>,
-    output_channel: Sender<SlicedVoiceData>,
+    output_data: Option<SlicedVoiceData<Ft>>,
+    output_channel: Sender<SlicedVoiceData<Ft>>,
+
+    state_sender: Sender<VadReturnState>,
 }
 
 impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
-    pub fn new(cfg: &model_config::BaseConfig<Ft, It>, chnl: Sender<SlicedVoiceData>) -> Self {
+    pub fn new(
+        cfg: &model_config::BaseConfig<Ft, It>,
+        chnl: Sender<SlicedVoiceData<Ft>>,
+        vad_state_detect_chnl: Sender<VadReturnState>,
+    ) -> Self {
         Self {
             stat_mchne: SpeakingStates::Idle,
 
@@ -67,6 +72,8 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
 
             output_data: None,
             output_channel: chnl,
+
+            state_sender: vad_state_detect_chnl,
         }
     }
 
@@ -161,6 +168,11 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
                                     .map_err(|e| make_parse_err_with_msg(e.to_string()))?;
                 */
 
+                self.state_sender
+                    .send(VadReturnState::Pause)
+                    .await
+                    .map_err(|e| make_parse_err_with_msg(e.to_string()))?;
+
                 println!("pause!");
             }
         } else {
@@ -236,8 +248,7 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
                     let out_vec = out_vec
                         .into_iter()
                         .chain(self.vec_buf.take().unwrap())
-                        .map(|x| x.to_f32().unwrap_or(0.0))
-                        .collect::<Vec<f32>>();
+                        .collect::<Vec<Ft>>();
 
                     self.vec_buf = Some(Vec::new());
 
@@ -252,7 +263,11 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
 
                     /*
                     let mut data: Vec<f32> = Vec::new();
-                    data = out_vec.clone();
+                    data = out_vec
+                        .clone()
+                        .into_iter()
+                        .map(|v| v.to_f32().unwrap())
+                        .collect();
                     play_audio(&data, 16000);
                     */
 
@@ -262,6 +277,11 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
                         return_data.end_time = end_time;
                         self.output_channel
                             .send(return_data)
+                            .await
+                            .map_err(|e| make_parse_err_with_msg(e.to_string()))?;
+
+                        self.state_sender
+                            .send(VadReturnState::Resume)
                             .await
                             .map_err(|e| make_parse_err_with_msg(e.to_string()))?;
 
@@ -278,22 +298,14 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
         Ok(())
     }
 
-    pub async fn process(&mut self, prob: Ft, mut input_data: VoiceData) -> Result<()> {
+    pub async fn process(&mut self, prob: Ft, mut input_data: VoiceData<Ft>) -> Result<()> {
         self.output_data = Some(input_data.init_to_sliced_voice_data_with_ref());
 
         if input_data.audio.is_none() {
             return Ok(());
         };
 
-        let arried_audio = Array1::from(
-            input_data
-                .audio
-                .as_ref()
-                .unwrap()
-                .iter()
-                .map(|x| <Ft as NumCast>::from(*x).unwrap_or(Ft::zero()))
-                .collect::<Vec<Ft>>(),
-        );
+        let arried_audio = Array1::from_iter(input_data.audio.as_ref().unwrap().iter().cloned());
 
         let int_chunk_array = &arried_audio
             * match <Ft as num_traits::NumCast>::from(32767.0) {
@@ -305,12 +317,14 @@ impl<Ft: FloatTrait + From<It>, It: IntTrait> StateMachine<Ft, It> {
                 }
             };
 
-        let f32_chunk_array: Vec<f32> = input_data.audio.take().unwrap();
+        let ft_chunk_array: Vec<Ft> = input_data.audio.take().unwrap();
 
-        let ft_chunk_array: Vec<Ft> = f32_chunk_array
-            .into_iter()
-            .map(|v| <Ft as NumCast>::from(v).unwrap_or(Ft::zero()))
-            .collect();
+        /*
+                let ft_chunk_array: Vec<Ft> = f32_chunk_array
+                    .into_iter()
+                    .map(|v| <Ft as NumCast>::from(v).unwrap_or(Ft::zero()))
+                    .collect();
+        */
 
         let db = Self::calculate_db(&int_chunk_array);
 

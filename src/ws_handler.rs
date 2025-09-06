@@ -2,8 +2,8 @@ use crate::{
     data_model::*,
     handlers::{asr, vad},
     model_config::BaseConfig,
-    // play_audio::*,
     state,
+    type_trait::FloatTrait,
     vad_error::*,
 };
 use axum::{
@@ -21,14 +21,14 @@ use reqwest;
 
 const INPUT_LEN: usize = 512;
 
-struct Buf {
-    buf: Option<[f32; INPUT_LEN]>,
+struct Buf<Ft: FloatTrait> {
+    buf: Option<[Ft; INPUT_LEN]>,
     ptr: usize,
-    act: Sender<VoiceData>,
+    act: Sender<VoiceData<Ft>>,
 }
 
-impl Buf {
-    pub fn new(sndr: Sender<VoiceData>) -> Self {
+impl<Ft: FloatTrait> Buf<Ft> {
+    pub fn new(sndr: Sender<VoiceData<Ft>>) -> Self {
         Self {
             buf: None,
             ptr: 0,
@@ -36,7 +36,7 @@ impl Buf {
         }
     }
 
-    pub async fn push_vec(&mut self, mut data: VoiceData) -> Result<()> {
+    pub async fn push_vec(&mut self, mut data: VoiceData<Ft>) -> Result<()> {
         if data.audio.as_mut().is_none() {
             return Ok(());
         }
@@ -46,7 +46,7 @@ impl Buf {
 
         // 初始化缓冲区
         if self.buf.is_none() {
-            self.buf = Some([0.0; INPUT_LEN]);
+            self.buf = Some([Ft::zero(); INPUT_LEN]);
             self.ptr = 0;
         }
 
@@ -76,7 +76,7 @@ impl Buf {
                 data_cpy.audio = Some(Vec::from(buf_data));
                 self.act.send(data_cpy).await?;
 
-                self.buf = Some([0.0; INPUT_LEN]);
+                self.buf = Some([Ft::zero(); INPUT_LEN]);
                 self.ptr = 0;
             }
         }
@@ -86,7 +86,7 @@ impl Buf {
             data.audio = Some(Vec::from(buf_data));
             self.act.send(data).await?;
 
-            self.buf = Some([0.0; INPUT_LEN]);
+            self.buf = Some([Ft::zero(); INPUT_LEN]);
             self.ptr = 0;
         }
 
@@ -97,18 +97,20 @@ impl Buf {
 struct VadWorker {
     vad_model_handler: vad::ModelHandler,
     stat: state::StateMachine<f32, i16>,
-    rcvr: Receiver<VoiceData>, // 接受输入的数组
+    rcvr: Receiver<VoiceData<f32>>, // 接受输入的数组
 }
 
 impl VadWorker {
     fn new(
         State(cfg): State<BaseConfig<f32, i16>>,
-        rcvr: Receiver<VoiceData>,
-        sndr: Sender<SlicedVoiceData>, // 交给state让他提供返回的数据
+        rcvr: Receiver<VoiceData<f32>>,
+        sndr: Sender<SlicedVoiceData<f32>>, // 交给state让他提供返回的数据
+
+        state_sndr: Sender<VadReturnState>,
     ) -> Result<Self> {
         Ok(Self {
             vad_model_handler: vad::ModelHandler::new(&cfg)?,
-            stat: state::StateMachine::new(&cfg, sndr),
+            stat: state::StateMachine::new(&cfg, sndr, state_sndr),
             rcvr,
         })
     }
@@ -125,14 +127,14 @@ impl VadWorker {
 
 struct AsrWorker<'a> {
     asr_model_handler: asr::ModelHandler<'a>,
-    rcvr: Receiver<SlicedVoiceData>,
+    rcvr: Receiver<SlicedVoiceData<f32>>,
     sndr: Sender<TextData>,
 }
 
 impl<'a> AsrWorker<'a> {
     fn new(
         State(cfg): State<BaseConfig<f32, i16>>,
-        rcvr: Receiver<SlicedVoiceData>,
+        rcvr: Receiver<SlicedVoiceData<f32>>,
         sndr: Sender<TextData>,
     ) -> Result<Self> {
         Ok(Self {
@@ -165,7 +167,7 @@ pub async fn audio_websocket_handler(
     dbg!("Connected!");
 
     let client = reqwest::Client::new();
-    let url = stt.output_socket.clone();
+    let url = stt.output_socket;
 
     let (mut sndr, mut rcvr) = socket.split();
 
@@ -173,7 +175,14 @@ pub async fn audio_websocket_handler(
     let (sndr_by_vad_worker, rcvr_by_asr_worker) = channel(10000);
     let (sndr_by_asr_worker, mut rcvr_return) = channel(10000);
 
-    let mut vad_worker = VadWorker::new(stt.clone(), rcvr_by_vad_worker, sndr_by_vad_worker)?;
+    let (state_sndr, mut state_rcvr) = channel(10000);
+
+    let mut vad_worker = VadWorker::new(
+        stt.clone(),
+        rcvr_by_vad_worker,
+        sndr_by_vad_worker,
+        state_sndr,
+    )?;
     let mut asr_worker = AsrWorker::new(stt, rcvr_by_asr_worker, sndr_by_asr_worker)?;
     let mut buf = Buf::new(sndr_input);
 
@@ -182,52 +191,30 @@ pub async fn audio_websocket_handler(
 
     tokio::spawn(async move {
         while let Some(Ok(msg)) = rcvr.next().await {
-            match msg {
-                Message::Text(text) => {
-                    // dbg!(&text);
-                    if let Ok(data) = serde_json::from_str::<NetworkData>(&text) {
-                        // println!("!");
-                        let voice_data: VoiceData = match data.try_into() {
-                            Ok(d) => d,
-                            Err(e) => {
-                                dbg!("{:?}", e);
-                                continue;
-                            }
-                        };
-
-                        if buf
-                            .push_vec(voice_data)
-                            .await
-                            .map_err(|e| {
-                                warn!("{:?}", e);
-                                e
-                            })
-                            .is_err()
-                        {
+            if let Message::Text(text) = msg {
+                // dbg!(&text);
+                if let Ok(data) = serde_json::from_str::<NetworkData>(&text) {
+                    // println!("!");
+                    let voice_data: VoiceData<f32> = match data.try_into() {
+                        Ok(d) => d,
+                        Err(e) => {
+                            dbg!("{:?}", e);
                             continue;
-                        };
-                    }
-                }
-                /*
-                                Message::Binary(data) => {
-                                    // dbg!(data.clone());
-                                    let float_array = convert_bytes_to_f32_array(&data, 16);
-                                    // println!("{:?}", float_array.clone());
+                        }
+                    };
 
-                                    if buf
-                                        .push_vec(float_array)
-                                        .await
-                                        .map_err(|e| {
-                                            warn!("{:?}", e);
-                                            e
-                                        })
-                                        .is_err()
-                                    {
-                                        continue;
-                                    };
-                                }
-                */
-                _ => (),
+                    if buf
+                        .push_vec(voice_data)
+                        .await
+                        .map_err(|e| {
+                            warn!("{:?}", e);
+                            e
+                        })
+                        .is_err()
+                    {
+                        continue;
+                    };
+                }
             }
         }
     });
@@ -241,12 +228,26 @@ pub async fn audio_websocket_handler(
                 .form(&out_form)
                 .send()
                 .await;
-            match resp {
-                Ok(value) => println!("{:?}", value),
-                Err(e) => println!("{:?}", e),
+            if let Err(e) = resp {
+                error!("{e}");
             }
+            /*
+                        match sndr.send("success!".to_string().into()).await {
+                            Ok(_) => continue,
+                            Err(_) => continue,
+                        };
+            */
+        }
+    });
 
-            match sndr.send("success!".to_string().into()).await {
+    // 状态返回给前端
+    tokio::spawn(async move {
+        while let Some(stt) = state_rcvr.recv().await {
+            let return_string = match stt {
+                VadReturnState::Pause => "<|PAUSE|>".to_string(),
+                VadReturnState::Resume => "<|RESUME|>".to_string(),
+            };
+            match sndr.send(Message::Text(return_string.into())).await {
                 Ok(_) => continue,
                 Err(_) => continue,
             };

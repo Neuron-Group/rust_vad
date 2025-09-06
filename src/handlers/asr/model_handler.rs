@@ -3,7 +3,7 @@ use ndarray::ArrayView1;
 use std::path::Path;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
-const INPUT_LEN: usize = 1600000;
+// const INPUT_LEN: usize = 1600000;
 pub struct WhisperASR<'a> {
     ctx: WhisperContext,
     params: FullParams<'a, 'a>,
@@ -42,38 +42,6 @@ impl<'a> WhisperASR<'a> {
         })
     }
 
-    fn validate_input(&self, x: &ArrayView1<f32>, sr: u32) -> Result<()> {
-        if sr != 16000 {
-            return Err(make_parse_err_with_msg(
-                "input length must fit to 16kHz QwQ".to_string(),
-            ));
-        }
-
-        if x.len() != INPUT_LEN {
-            return Err(make_parse_err_with_msg(
-                "input length must fit to 32000 >_<".to_string(),
-            ));
-        }
-
-        Ok(())
-    }
-
-    fn validate_input_on_vec(&self, x: &[f32], sr: u32) -> Result<()> {
-        if sr != 16000 {
-            return Err(make_parse_err_with_msg(
-                "input length must fit to 16kHz QwQ".to_string(),
-            ));
-        }
-
-        if x.len() != INPUT_LEN {
-            return Err(make_parse_err_with_msg(
-                "input length must fit to 32000 >_<".to_string(),
-            ));
-        }
-
-        Ok(())
-    }
-
     pub fn process_chunk(&mut self, x: &ArrayView1<f32>, sr: u32) -> Result<String> {
         // self.validate_input(x, sr)?;
 
@@ -82,7 +50,11 @@ impl<'a> WhisperASR<'a> {
     }
 
     pub fn process_chunk_with_vec(&mut self, x: Vec<f32>, sr: u32) -> Result<String> {
-        // self.validate_input_on_vec(&x, sr)?;
+        if sr != 16000 {
+            return Err(make_parse_err_with_msg(
+                "input length must fit to 16kHz QwQ".to_string(),
+            ));
+        }
 
         let mut state = self.ctx.create_state().map_err(|_| {
             make_model_handler_err_with_msg("create asr state failed TAT".to_string())
