@@ -228,9 +228,6 @@ pub async fn audio_websocket_handler(
                 .form(&out_form)
                 .send()
                 .await;
-            if let Err(e) = resp {
-                error!("{e}");
-            }
 
             match resp {
                 Ok(r) => {
