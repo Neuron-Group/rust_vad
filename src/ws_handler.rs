@@ -235,7 +235,7 @@ pub async fn audio_websocket_handler(
             match resp {
                 Ok(r) => {
                     info!("{r:?}");
-                    println!("{|INFO| r:?}");
+                    println!("|INFO | {r:?}");
                 }
                 Err(e) => {
                     error!("{e:?}");
@@ -252,7 +252,7 @@ pub async fn audio_websocket_handler(
                 VadReturnState::Pause => "<|PAUSE|>".to_string(),
                 VadReturnState::Resume => "<|RESUME|>".to_string(),
             };
-            println!("|INFO| {}", return_string.clone());
+            println!("|INFO | {}", return_string.clone());
             match sndr.send(Message::Text(return_string.into())).await {
                 Ok(_) => continue,
                 Err(_) => continue,
